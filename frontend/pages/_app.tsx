@@ -3,6 +3,7 @@ import Head from 'next/head';
 import '../styles/globals.css';
 import '../styles/command.css';
 import '../styles/public-experience.css';
+import '../styles/avatar-studio-v3.css';
 import '../styles/meeting.css';
 export default function App({ Component, pageProps }: AppProps) {
   return <>
