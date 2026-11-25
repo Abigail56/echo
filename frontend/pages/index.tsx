@@ -1,83 +1,90 @@
 import Link from 'next/link';
+import Head from 'next/head';
 import Layout from '../components/Layout';
 
-const portrait = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=88';
+const features = [
+  { number: '01', category: 'IDENTITY', title: 'Shape your ECHO.', description: 'Create a digital representative and decide what it knows, how it introduces you and what stays private.', href: '/creator', action: 'Create a presence' },
+  { number: '02', category: 'PRESENCE', title: 'Find your voice.', description: 'Explore browser-based avatar sessions and compatible providers. Availability is shown before you connect.', href: '/avatar-lab', action: 'Explore Avatar Studio' },
+  { number: '03', category: 'CONNECTION', title: 'Meet new perspectives.', description: 'Discover public ECHOs, build communities and request introductions with consent on both sides.', href: '/world', action: 'Enter ECHO World' },
+];
 
-function FiberTrace() {
-  return <svg className="fiber-trace" viewBox="0 0 760 680" fill="none" aria-hidden="true">
-    <path d="M760 68C584 68 641 228 468 228S305 87 169 184 179 413 17 488" />
-    <path d="M760 96C596 96 658 255 480 255S308 124 185 214 191 429 28 511" />
-    <path d="M760 124C611 124 677 281 491 281S312 161 201 244 206 446 39 534" />
-    <path d="M760 152C629 152 695 307 503 307S317 198 217 274 221 464 50 557" />
-    <path d="M760 180C647 180 713 334 514 334S322 235 233 304 235 481 61 580" />
-    <circle cx="480" cy="255" r="3" /><circle cx="217" cy="274" r="3" />
-  </svg>;
+function PresenceGraphic() {
+  return <div className="new-hero-visual" aria-label="Illustration of an ECHO presence connected to Studio, conversations, and World">
+    <div className="new-orbit new-orbit-outer" aria-hidden="true" />
+    <div className="new-orbit new-orbit-inner" aria-hidden="true" />
+    <div className="new-presence-card">
+      <span className="new-preview-label"><i /> ECHO / IDENTITY</span>
+      <div className="new-presence-glyph" aria-hidden="true"><span>E</span></div>
+      <div className="new-presence-bottom">
+        <strong>Your perspective.</strong>
+        <span>Your rules.</span>
+      </div>
+    </div>
+    <div className="new-float new-float-one"><span className="new-float-icon">◎</span><span>STUDIO<br /><strong>Personal knowledge</strong></span></div>
+    <div className="new-float new-float-two"><span className="new-float-icon">◌</span><span>WORLD<br /><strong>Meaningful connections</strong></span></div>
+    <span className="new-preview-disclaimer">PRODUCT CONCEPT / NOT A LIVE AVATAR PREVIEW</span>
+  </div>;
 }
 
 export default function Home() {
   return <Layout>
-    <main className="landing-page">
-      <section className="landing-hero">
-        <div className="hero-copy">
-          <div className="eyebrow"><span className="eyebrow-line" /> A NEW LAYER OF HUMAN PRESENCE</div>
-          <h1>Your presence.<br /><span>Beyond boundaries.</span></h1>
-          <p className="hero-lede">A digital presence that carries your point of view into every room, relationship and opportunity — on your terms.</p>
-          <div className="hero-actions">
+    <Head>
+      <title>ECHO — Your presence. Beyond boundaries.</title>
+      <meta name="description" content="Create an ECHO, control what it knows, explore live avatar experiences and discover new connections in ECHO World." />
+    </Head>
+    <main className="new-home">
+      <section className="new-home-hero">
+        <div className="new-home-copy">
+          <div className="new-home-eyebrow"><span /> HUMAN PRESENCE, REIMAGINED</div>
+          <h1>Your presence.<br /><em>Beyond boundaries.</em></h1>
+          <p>Meet ECHO: a personal intelligence space to express who you are, share what you choose, and connect beyond the usual profile.</p>
+          <div className="new-home-actions">
             <Link className="button" href="/register">Create your ECHO <span aria-hidden="true">↗</span></Link>
-            <Link className="text-link" href="/world">Explore ECHO World <span aria-hidden="true">→</span></Link>
+            <Link className="new-home-secondary" href="/world">Discover ECHO World <span aria-hidden="true">→</span></Link>
           </div>
-          <div className="hero-index"><span>01 — 03</span><span>INTELLIGENCE THAT TRAVELS WITH YOU</span></div>
+          <div className="new-home-micro"><span className="new-mini-dot" /> YOUR IDENTITY. YOUR CONSENT. YOUR CONTROL.</div>
         </div>
-        <div className="hero-art" aria-label="Portrait representing human presence and global connection">
-          <FiberTrace />
-          <div className="hero-portrait-frame">
-            <img src={portrait} alt="Editorial portrait representing the human presence behind an ECHO" />
-            <div className="portrait-shade" />
-            <div className="portrait-caption"><span className="signal-dot" /> HUMAN SIGNAL <span>01 / 03</span></div>
-          </div>
-          <div className="hero-art-note"><span>01</span><span>PERSONAL INTELLIGENCE<br />BUILT AROUND YOU</span></div>
-        </div>
-        <div className="hero-side-label">ECHO / PERSONAL INTELLIGENCE</div>
+        <PresenceGraphic />
       </section>
 
-      <section className="manifesto-section" id="presence">
-        <div className="section-kicker">01 / THE PRESENCE LAYER</div>
-        <div className="manifesto-grid">
-          <h2>Not another profile.<br /><span>A point of view.</span></h2>
-          <div>
-            <p>Your ECHO is a digital representative shaped by the knowledge you choose to share. It can introduce your work, hold a conversation and bring your perspective into ECHO World.</p>
-            <Link href="/register" className="text-link">Build your presence <span aria-hidden="true">↗</span></Link>
-          </div>
+      <section className="new-promise" id="presence">
+        <div className="new-section-caption">THE IDEA / 001</div>
+        <div className="new-promise-grid">
+          <h2>More than a profile.<br /><span>A presence with purpose.</span></h2>
+          <p>ECHO helps you bring your perspective into conversations and communities. You decide what to share, who to connect with and when your digital representative can act.</p>
         </div>
       </section>
 
-      <section className="experience-section">
-        <div className="experience-heading">
-          <div className="section-kicker">02 / ONE IDENTITY, MANY ROOMS</div>
-          <p>Designed for real human connection.<br />Built for a world without borders.</p>
+      <section className="new-feature-section" id="experiences">
+        <div className="new-feature-head">
+          <div><span className="new-section-caption">EXPLORE / 002</span><h2>One identity.<br />More possibilities.</h2></div>
+          <p>Start with what matters to you. Every experience is designed to keep you in control.</p>
         </div>
-        <div className="experience-grid">
-          <article className="experience-feature experience-studio">
-            <div className="feature-number">01</div>
-            <div className="feature-copy"><h3>Your Studio</h3><p>Shape what your ECHO knows, how it speaks and what it shares. You set the boundaries.</p><Link href="/dashboard" className="text-link">Enter Studio <span aria-hidden="true">↗</span></Link></div>
-            <div className="studio-mark" aria-hidden="true"><span>E</span><i /><b /></div>
-          </article>
-          <article className="experience-feature experience-world">
-            <div className="feature-number">02</div>
-            <div className="feature-copy"><h3>ECHO World</h3><p>Meet new perspectives, find your communities and make thoughtful introductions.</p><Link href="/world" className="text-link">Discover the World <span aria-hidden="true">↗</span></Link></div>
-            <div className="world-mark" aria-hidden="true"><i /><i /><i /><i /><b /></div>
-          </article>
-          <article className="experience-feature experience-live">
-            <div className="feature-number">03</div>
-            <div className="feature-copy"><h3>Live Presence</h3><p>Bring a provider-backed video avatar into your browser. External meeting support is clearly marked by availability.</p><Link href="/meeting" className="text-link">Prepare a session <span aria-hidden="true">↗</span></Link></div>
-            <div className="live-mark"><img src={portrait} alt="" /><span>LIVE<br />PRESENCE</span></div>
-          </article>
+        <div className="new-feature-grid">
+          {features.map(feature => <article key={feature.number} className="new-feature-card">
+            <div className="new-feature-card-top"><span>{feature.category}</span><span>{feature.number} / 03</span></div>
+            <div className="new-feature-symbol" aria-hidden="true">{feature.number === '01' ? 'E' : feature.number === '02' ? '◉' : '◎'}</div>
+            <h3>{feature.title}</h3>
+            <p>{feature.description}</p>
+            <Link href={feature.href}>{feature.action} <span aria-hidden="true">↗</span></Link>
+          </article>)}
         </div>
       </section>
 
-      <section className="closing-section">
-        <div className="closing-art"><FiberTrace /><span className="closing-index">ECHO / 2025</span></div>
-        <div className="closing-copy"><div className="section-kicker">03 / YOUR NEXT ROOM IS CLOSER</div><h2>Take your perspective<br />with you.</h2><p>Build a presence that moves with your work, your community and your curiosity.</p><Link className="button" href="/register">Begin with ECHO <span aria-hidden="true">↗</span></Link></div>
+      <section className="new-how">
+        <div><span className="new-section-caption">GET STARTED / 003</span><h2>Built around<br /><em>your choices.</em></h2></div>
+        <div className="new-how-steps">
+          <div><span>01</span><strong>Create your identity</strong><p>Sign up and give your ECHO a name, personality and purpose.</p></div>
+          <div><span>02</span><strong>Set your boundaries</strong><p>Choose your knowledge, privacy settings and public presence.</p></div>
+          <div><span>03</span><strong>Explore the possibilities</strong><p>Enter Studio, try supported avatar experiences and connect in World.</p></div>
+        </div>
+      </section>
+
+      <section className="new-home-cta">
+        <span className="new-section-caption">YOUR NEXT CHAPTER</span>
+        <h2>Make room for<br /><em>your next connection.</em></h2>
+        <p>Your ECHO starts with you. Build it at your own pace.</p>
+        <Link className="button" href="/register">Get started with ECHO <span aria-hidden="true">↗</span></Link>
       </section>
     </main>
   </Layout>;
