@@ -38,6 +38,7 @@ def test_avatar_upload_accepts_only_matching_jpeg_and_png_signatures():
 
 def test_provider_status_is_honest_about_available_capabilities(monkeypatch):
     monkeypatch.setattr("app.api.avatar.settings", lambda: SimpleNamespace(
+        AVATAR_SDK_ENABLED=True,
         AVATAR_SDK_CLIENT_ID="",
         AVATAR_SDK_CLIENT_SECRET="",
     ))
