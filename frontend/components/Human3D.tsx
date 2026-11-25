@@ -12,36 +12,56 @@ export function supportsWebGL2(): boolean {
   return true;
 }
 
+/** Fit arbitrary imported GLBs to a predictable, head-safe studio framing. */
+function fitModelToPreview(model: THREE.Group) {
+  // Updating the cloned skeleton before measuring avoids stale pose/world matrices.
+  model.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(model);
+  if (box.isEmpty()) return;
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const largest = Math.max(size.x, size.y, size.z);
+  if (!Number.isFinite(largest) || largest <= 0.0001) return;
+
+  // A full body occupies ~70% of the preview height; wide models also fit.
+  const scale = Math.min(2.5 / Math.max(size.y, 0.0001), 2.4 / largest);
+  model.scale.setScalar(scale);
+  model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+  model.updateMatrixWorld(true);
+}
+
 function RealHuman({ talking, mouthOpen, url }: { talking: boolean; mouthOpen: number; url: string }) {
   const group = useRef<THREE.Group>(null);
   const { scene } = useGLTF(url);
-  const model = useMemo(() => {
+  const { model, headBones } = useMemo(() => {
     const modelClone = clone(scene);
+    const bones: THREE.Bone[] = [];
     modelClone.traverse(object => {
       if (object instanceof THREE.Mesh) {
         object.castShadow = true;
         object.receiveShadow = true;
       }
+      if (object instanceof THREE.Bone) {
+        const name = object.name.toLowerCase();
+        if (name.includes('head') && !name.includes('headtop')) bones.push(object);
+      }
     });
-    return modelClone;
+    fitModelToPreview(modelClone);
+    return { model: modelClone, headBones: bones };
   }, [scene]);
+
   useFrame(({ clock }, delta) => {
     if (!group.current) return;
     const time = clock.elapsedTime;
-    group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, Math.sin(time * 0.32) * 0.08, delta * 1.5);
-    group.current.position.y = -0.82 + Math.sin(time * 1.1) * 0.012;
-
-    group.current.traverse(object => {
-      if (!(object instanceof THREE.Bone)) return;
-      const name = object.name.toLowerCase();
-      if (name.includes('head') && !name.includes('headtop')) {
-        object.rotation.z = THREE.MathUtils.lerp(object.rotation.z, talking ? Math.sin(time * 0.9) * 0.025 : 0, delta * 2);
-        object.rotation.x = THREE.MathUtils.lerp(object.rotation.x, talking ? -0.025 - mouthOpen * 0.012 : 0, delta * 2);
-      }
-    });
+    group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, Math.sin(time * 0.32) * 0.08, Math.min(1, delta * 1.5));
+    group.current.position.y = Math.sin(time * 1.1) * 0.01;
+    for (const bone of headBones) {
+      bone.rotation.z = THREE.MathUtils.lerp(bone.rotation.z, talking ? Math.sin(time * 0.9) * 0.025 : 0, Math.min(1, delta * 2));
+      bone.rotation.x = THREE.MathUtils.lerp(bone.rotation.x, talking ? -0.025 - mouthOpen * 0.012 : 0, Math.min(1, delta * 2));
+    }
   });
 
-  return <primitive ref={group} object={model} position={[0, -0.82, 0]} rotation={[0, Math.PI, 0]} />;
+  return <group ref={group} rotation={[0, Math.PI, 0]}><primitive object={model} /></group>;
 }
 
 function AvatarScene({ talking, mouthOpen, modelUrl }: { talking: boolean; mouthOpen: number; modelUrl?: string }) {
@@ -50,29 +70,25 @@ function AvatarScene({ talking, mouthOpen, modelUrl }: { talking: boolean; mouth
       shadows
       dpr={[1, 1.75]}
       gl={{ antialias: true, preserveDrawingBuffer: true }}
-      camera={{ position: [0, 0.05, 4.2], fov: 32, near: 0.1, far: 100 }}
+      camera={{ position: [0, 0.05, 5], fov: 35, near: 0.1, far: 100 }}
     >
-      <color attach="background" args={['#091426']} />
-      <fog attach="fog" args={['#091426', 5, 9]} />
-      <ambientLight intensity={1.15} />
-      <hemisphereLight args={['#d9efff', '#1b1a27', 1.35]} />
-      <directionalLight position={[2.5, 4, 3]} intensity={2.2} castShadow shadow-mapSize={[1024, 1024]} />
-      <directionalLight position={[-3, 2, 1]} intensity={0.75} color="#9aaeff" />
-      <mesh receiveShadow position={[0, -0.82, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[1.7, 64]} />
-        <meshStandardMaterial color="#101c2b" roughness={0.82} metalness={0.08} />
-      </mesh>
+      <color attach="background" args={['#101321']} />
+      <ambientLight intensity={1.1} />
+      <hemisphereLight args={['#e6efff', '#2b213d', 1.25]} />
+      <directionalLight position={[3, 5, 4]} intensity={2.1} castShadow shadow-mapSize={[1024, 1024]} />
+      <directionalLight position={[-3, 2, -1]} intensity={1.0} color="#b8a4ff" />
       <Suspense fallback={null}>
         <RealHuman talking={talking} mouthOpen={mouthOpen} url={modelUrl || '/avatars/michelle.glb'} />
       </Suspense>
       <OrbitControls
         makeDefault
-        target={[0, 0.05, 0]}
+        target={[0, 0, 0]}
         enablePan={false}
-        minDistance={1.8}
-        maxDistance={7}
-        minPolarAngle={Math.PI * 0.28}
-        maxPolarAngle={Math.PI * 0.72}
+        enableDamping
+        minDistance={2.7}
+        maxDistance={8}
+        minPolarAngle={Math.PI * 0.2}
+        maxPolarAngle={Math.PI * 0.8}
       />
     </Canvas>
   );
