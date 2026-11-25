@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+/.mcp.json
+tailscale/.env
+frontend/.mcpjam/
+https:/
+node_modules/
+.next/
+*.tsbuildinfo
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.db

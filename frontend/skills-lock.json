@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "skills": {
+    "liveavatar-debug": {
+      "source": "heygen-com/liveavatar-agent-skills",
+      "commit": "88960dc00ebb35c128b15345a97c5aebcd89a676",
+      "sourceType": "github",
+      "skillPath": "skills/liveavatar-debug/SKILL.md",
+      "computedHash": "1dbc1e3463f848c541bb3899d4041d786a75b71f5786f09520efa5a5813cd005"
+    },
+    "liveavatar-demo": {
+      "source": "heygen-com/liveavatar-agent-skills",
+      "commit": "88960dc00ebb35c128b15345a97c5aebcd89a676",
+      "sourceType": "github",
+      "skillPath": "skills/liveavatar-demo/SKILL.md",
+      "computedHash": "399cf63012fffe1eb889d24f069784f131e53d8dc9e162072e3cf53e4d161106"
+    },
+    "liveavatar-feedback": {
+      "source": "heygen-com/liveavatar-agent-skills",
+      "commit": "88960dc00ebb35c128b15345a97c5aebcd89a676",
+      "sourceType": "github",
+      "skillPath": "skills/liveavatar-feedback/SKILL.md",
+      "computedHash": "869f160b7774d2b314a5a5183f14e0377e5a41e40c2e0bbbba6bf0d25d8855de"
+    },
+    "liveavatar-integrate": {
+      "source": "heygen-com/liveavatar-agent-skills",
+      "commit": "88960dc00ebb35c128b15345a97c5aebcd89a676",
+      "sourceType": "github",
+      "skillPath": "skills/liveavatar-integrate/SKILL.md",
+      "computedHash": "af647b1e8e218b224f17e6a9b3b9587b0f377829c77786baa05a7ad7656cd027"
+    }
+  }
+}

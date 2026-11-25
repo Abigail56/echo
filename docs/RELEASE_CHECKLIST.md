@@ -1,0 +1,12 @@
+# Release checklist
+- [ ] Docker Compose build and health checks pass
+- [ ] Frontend build passes
+- [ ] Automated tests pass on target platform
+- [ ] Database migration up/down verified on a disposable clone
+- [ ] Authentication, privacy and access control reviewed
+- [ ] Avatar likeness and voice consent flow reviewed
+- [ ] Payment processing and webhook replay tests pass (when implemented)
+- [ ] Backups restored successfully
+- [ ] Load, accessibility and security tests completed
+- [ ] Legal terms and privacy policy reviewed
+- [ ] Incident contacts and rollback plan documented

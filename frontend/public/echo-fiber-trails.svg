@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" fill="none">
+  <defs>
+    <linearGradient id="fiber-magenta" x1="118" y1="710" x2="1398" y2="247" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F000D4" stop-opacity=".05"/>
+      <stop offset=".48" stop-color="#F000D4" stop-opacity=".72"/>
+      <stop offset="1" stop-color="#7928FF" stop-opacity=".12"/>
+    </linearGradient>
+    <linearGradient id="fiber-blue" x1="80" y1="825" x2="1470" y2="386" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563EB" stop-opacity=".04"/>
+      <stop offset=".55" stop-color="#7928FF" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#F000D4" stop-opacity=".08"/>
+    </linearGradient>
+    <filter id="soft-glow" x="-20%" y="-30%" width="140%" height="160%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+  </defs>
+  <g stroke="url(#fiber-magenta)" stroke-width="1.25">
+    <path d="M-40 734C188 695 263 456 480 467s207 198 441 104 267-291 723-340"/>
+    <path d="M-40 762C190 727 278 488 484 495s212 194 445 111 279-292 715-335"/>
+    <path d="M-40 790C195 759 294 518 489 523s218 189 448 118 291-292 707-331"/>
+    <path d="M-40 818C199 791 310 548 493 551s224 185 452 125 303-291 699-327"/>
+    <path d="M-40 846C202 823 326 578 498 579s230 181 455 132 315-290 691-322"/>
+    <path d="M-40 874C206 855 342 609 502 607s235 177 459 139 327-289 683-318"/>
+  </g>
+  <g stroke="url(#fiber-blue)" stroke-width="1">
+    <path d="M-30 612C214 624 297 327 521 353s235 240 468 129 288-267 643-286"/>
+    <path d="M-30 640C219 652 313 358 525 381s240 235 472 136 300-269 635-282"/>
+    <path d="M-30 668C224 680 329 388 530 409s246 229 475 144 313-271 627-278"/>
+    <path d="M-30 696C229 708 345 419 535 437s251 224 479 151 326-272 619-274"/>
+  </g>
+  <g filter="url(#soft-glow)" opacity=".26" stroke="#F000D4" stroke-width="7">
+    <path d="M-40 790C195 759 294 518 489 523s218 189 448 118 291-292 707-331"/>
+    <path d="M-40 846C202 823 326 578 498 579s230 181 455 132 315-290 691-322"/>
+  </g>
+</svg>

@@ -1,0 +1,115 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: echo
+      POSTGRES_PASSWORD: echo_dev_password
+      POSTGRES_DB: echo
+    ports: ["127.0.0.1:5435:5432"]
+    volumes: [echo_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U echo -d echo"]
+      interval: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [echo_redis_data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://echo:echo_dev_password@db:5432/echo
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in root .env}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      REDIS_URL: redis://redis:6379/0
+      APP_ENV: development
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+      AI_MODEL: ${AI_MODEL:-gpt-4.1-mini}
+      AVATAR_PROVIDER: ${AVATAR_PROVIDER:-liveavatar}
+      LIVEAVATAR_API_KEY: ${LIVEAVATAR_API_KEY:-}
+      LIVEAVATAR_DEFAULT_AVATAR_ID: ${LIVEAVATAR_DEFAULT_AVATAR_ID:-}
+      LIVEAVATAR_ENABLED: ${LIVEAVATAR_ENABLED:-true}
+      LIVEAVATAR_SANDBOX: ${LIVEAVATAR_SANDBOX:-true}
+      LIVEAVATAR_AVATAR_1_ID: ${LIVEAVATAR_AVATAR_1_ID:-}
+      LIVEAVATAR_AVATAR_1_VOICE_ID: ${LIVEAVATAR_AVATAR_1_VOICE_ID:-}
+      LIVEAVATAR_AVATAR_1_MODEL: ${LIVEAVATAR_AVATAR_1_MODEL:-}
+      LIVEAVATAR_AVATAR_2_ID: ${LIVEAVATAR_AVATAR_2_ID:-}
+      LIVEAVATAR_AVATAR_2_VOICE_ID: ${LIVEAVATAR_AVATAR_2_VOICE_ID:-}
+      LIVEAVATAR_AVATAR_2_MODEL: ${LIVEAVATAR_AVATAR_2_MODEL:-}
+      LIVEAVATAR_AVATAR_3_ID: ${LIVEAVATAR_AVATAR_3_ID:-}
+      LIVEAVATAR_AVATAR_3_VOICE_ID: ${LIVEAVATAR_AVATAR_3_VOICE_ID:-}
+      LIVEAVATAR_AVATAR_3_MODEL: ${LIVEAVATAR_AVATAR_3_MODEL:-}
+      LIVEAVATAR_AVATAR_4_ID: ${LIVEAVATAR_AVATAR_4_ID:-}
+      LIVEAVATAR_AVATAR_4_VOICE_ID: ${LIVEAVATAR_AVATAR_4_VOICE_ID:-}
+      LIVEAVATAR_AVATAR_4_MODEL: ${LIVEAVATAR_AVATAR_4_MODEL:-}
+      LIVEAVATAR_AVATAR_5_ID: ${LIVEAVATAR_AVATAR_5_ID:-}
+      LIVEAVATAR_AVATAR_5_VOICE_ID: ${LIVEAVATAR_AVATAR_5_VOICE_ID:-}
+      LIVEAVATAR_AVATAR_5_MODEL: ${LIVEAVATAR_AVATAR_5_MODEL:-}
+      LIVEAVATAR_AVATAR_6_ID: ${LIVEAVATAR_AVATAR_6_ID:-}
+      LIVEAVATAR_AVATAR_6_VOICE_ID: ${LIVEAVATAR_AVATAR_6_VOICE_ID:-}
+      LIVEAVATAR_AVATAR_6_MODEL: ${LIVEAVATAR_AVATAR_6_MODEL:-}
+      TAVUS_ENABLED: ${TAVUS_ENABLED:-false}
+      TAVUS_API_KEY: ${TAVUS_API_KEY:-}
+      TAVUS_PAL_ID: ${TAVUS_PAL_ID:-}
+      TAVUS_AVATAR_1_ID: ${TAVUS_AVATAR_1_ID:-}
+      TAVUS_AVATAR_1_NAME: ${TAVUS_AVATAR_1_NAME:-}
+      TAVUS_AVATAR_2_ID: ${TAVUS_AVATAR_2_ID:-}
+      TAVUS_AVATAR_2_NAME: ${TAVUS_AVATAR_2_NAME:-}
+      TAVUS_AVATAR_3_ID: ${TAVUS_AVATAR_3_ID:-}
+      TAVUS_AVATAR_3_NAME: ${TAVUS_AVATAR_3_NAME:-}
+      TAVUS_AVATAR_4_ID: ${TAVUS_AVATAR_4_ID:-}
+      TAVUS_AVATAR_4_NAME: ${TAVUS_AVATAR_4_NAME:-}
+      TAVUS_AVATAR_5_ID: ${TAVUS_AVATAR_5_ID:-}
+      TAVUS_AVATAR_5_NAME: ${TAVUS_AVATAR_5_NAME:-}
+      TAVUS_AVATAR_6_ID: ${TAVUS_AVATAR_6_ID:-}
+      TAVUS_AVATAR_6_NAME: ${TAVUS_AVATAR_6_NAME:-}
+      TAVUS_AVATAR_7_ID: ${TAVUS_AVATAR_7_ID:-}
+      TAVUS_AVATAR_7_NAME: ${TAVUS_AVATAR_7_NAME:-}
+      TAVUS_AVATAR_8_ID: ${TAVUS_AVATAR_8_ID:-}
+      TAVUS_AVATAR_8_NAME: ${TAVUS_AVATAR_8_NAME:-}
+      AVATAR_SDK_ENABLED: ${AVATAR_SDK_ENABLED:-false}
+      AVATAR_SDK_CLIENT_ID: ${AVATAR_SDK_CLIENT_ID:-}
+      AVATAR_SDK_CLIENT_SECRET: ${AVATAR_SDK_CLIENT_SECRET:-}
+      AVATAR_STORAGE_DIR: /var/lib/echo/avatars
+    ports: ["127.0.0.1:8001:8000"]
+    volumes: [echo_avatar_data:/var/lib/echo/avatars]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8001/api/v1}
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8001/api/v1}
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on: [backend]
+  tailscale:
+    image: tailscale/tailscale:stable
+    profiles: ["tailscale"]
+    env_file: ./tailscale/.env
+    environment:
+      TS_AUTH_ONCE: "true"
+      TS_EXTRA_ARGS: --hostname=echo-studio-app
+      TS_SERVE_CONFIG: /config/serve.json
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "true"
+    volumes:
+      - echo_tailscale_data:/var/lib/tailscale
+      - ./tailscale/config:/config:ro
+    depends_on:
+      backend: {condition: service_started}
+      frontend: {condition: service_started}
+    restart: unless-stopped
+volumes:
+  echo_data:
+  echo_redis_data:
+  echo_avatar_data:
+  echo_tailscale_data:

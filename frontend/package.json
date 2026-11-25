@@ -1,0 +1,31 @@
+{
+  "name": "echo-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@daily-co/daily-js": "^0.95.0",
+    "@daily-co/daily-react": "^0.26.1",
+    "@heygen/liveavatar-web-sdk": "^0.0.20",
+    "@react-three/drei": "^10.0.0",
+    "@react-three/fiber": "^9.0.0",
+    "jotai": "^2.20.3",
+    "livekit-client": "^2.25.0",
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@types/three": "^0.170.0",
+    "typescript": "^5.9.0"
+  }
+}

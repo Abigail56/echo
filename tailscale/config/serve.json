@@ -1,0 +1,19 @@
+{
+  "TCP": {
+    "443": {
+      "HTTPS": true
+    }
+  },
+  "Web": {
+    "echo-studio-app.tail084665.ts.net:443": {
+      "Handlers": {
+        "/api/v1/": {
+          "Proxy": "http://backend:8000/api/v1"
+        },
+        "/": {
+          "Proxy": "http://frontend:3000"
+        }
+      }
+    }
+  }
+}
