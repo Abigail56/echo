@@ -1,0 +1,53 @@
+/* Avatar Studio v3 — scoped layout and canvas improvements */
+.avatar-studio-v3 { padding-top: 28px; max-width: 1320px; }
+.avatar-v3-intro { display: flex; justify-content: space-between; align-items: start; gap: 26px; padding: 34px 0 44px; }
+.avatar-v3-intro h1 { margin: 20px 0 19px; font-size: clamp(2.8rem, 5.3vw, 5.3rem); line-height: 1.02; letter-spacing: -.065em; }
+.avatar-v3-intro h1 em { color: #c3b1fc; font-style: normal; }
+.avatar-v3-intro p { max-width: 610px; margin: 0; color: #c1bbce; font-size: 1rem; line-height: 1.7; }
+.avatar-v3-intro .button { margin-top: 8px; border-radius: 9px; white-space: nowrap; }
+.avatar-v3-jump { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; padding: 0 0 42px; }
+.avatar-v3-jump a { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 15px 19px; border: 1px solid #ffffff23; border-radius: 12px; background: #181625; color: #f4eefe; font-size: .86rem; font-weight: 600; transition: background .2s, border-color .2s; }
+.avatar-v3-jump a:hover { border-color: #b09af97d; background: #251f39; }
+.avatar-v3-jump a span:first-child { color: #a795cb; font-size: .65rem; }
+.avatar-v3-jump a span:last-child { margin-left: auto; color: #bfaaf7; }
+.avatar-v3-section { margin: 0 0 58px; scroll-margin-top: 25px; }
+.avatar-v3-section-head { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 19px; }
+.avatar-v3-section-head h2 { margin: 10px 0 0; font-size: clamp(1.8rem, 3.5vw, 3rem); }
+.avatar-v3-section-head p { max-width: 425px; margin: 0; color: #b8b1c7; font-size: .84rem; line-height: 1.6; }
+.avatar-v3-panel { padding: clamp(13px, 2.6vw, 28px); border: 1px solid #cab7ff31; border-radius: 18px; background: linear-gradient(145deg, #1b172c, #0e101a 60%); }
+.avatar-v3-note { margin: 15px 0 0; color: #a6a0b5; font-size: .78rem; line-height: 1.6; }
+.avatar-v3-tools { overflow: hidden; margin-top: 0; border-color: #cab7ff32; border-radius: 18px; background: #131322; }
+.avatar-v3-tools summary { padding: 20px 25px; }
+.avatar-v3-tools summary strong { font-size: 1.04rem; }
+.avatar-v3-tools summary small { color: #afa9bc; }
+.avatar-v3-tools .studio-advanced-content { padding: clamp(15px, 2.5vw, 28px); }
+.avatar-v3-tools .voice-mode-switch { margin: 6px 0 22px; padding: 7px; border: 1px solid #ffffff1c; border-radius: 12px; background: #0d0e18; }
+.avatar-v3-tools .voice-mode-switch .button { min-height: 44px; border-radius: 8px; }
+.avatar-v3-tools .human-avatar { height: clamp(420px, 58vw, 660px); min-height: 420px; border: 1px solid #b19cf550; border-radius: 16px; background: #101321; }
+.avatar-v3-tools .voice-controls { border-radius: 13px; }
+.avatar-v3-tools .voice-controls input, .avatar-v3-tools .voice-controls select { border-radius: 9px; }
+.avatar-v3-bottom { display: flex; justify-content: space-between; align-items: center; gap: 30px; padding: 31px; border: 1px solid #8270b64b; border-radius: 17px; background: linear-gradient(115deg, #201a35, #11131e); }
+.avatar-v3-bottom h2 { margin: 11px 0; font-size: 1.9rem; }
+.avatar-v3-bottom p { margin: 0; color: #b3adc0; font-size: .88rem; }
+.avatar-v3-links { display: flex; gap: 11px; flex-wrap: wrap; }
+.avatar-v3-links .button { border-radius: 10px; white-space: nowrap; }
+@media (max-width: 950px) {
+  .avatar-v3-section-head { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .avatar-v3-section-head p { max-width: 750px; }
+  .avatar-v3-bottom { align-items: flex-start; flex-direction: column; }
+}
+@media (max-width: 620px) {
+  .avatar-studio-v3 { padding-top: 15px; }
+  .avatar-v3-intro { flex-direction: column; gap: 17px; padding: 22px 0 29px; }
+  .avatar-v3-intro h1 { font-size: clamp(2.65rem, 11vw, 4rem); }
+  .avatar-v3-jump { grid-template-columns: 1fr; gap: 8px; padding-bottom: 30px; }
+  .avatar-v3-jump a { min-height: 50px; }
+  .avatar-v3-panel { padding: 12px; }
+  .avatar-v3-tools .human-avatar { min-height: 360px; height: 380px; }
+  .avatar-v3-tools summary { padding: 17px; }
+  .avatar-v3-tools .voice-mode-switch { flex-direction: column; }
+  .avatar-v3-tools .voice-mode-switch .button { width: 100%; }
+  .avatar-v3-bottom { padding: 23px; }
+  .avatar-v3-links { width: 100%; flex-direction: column; }
+  .avatar-v3-links .button { width: 100%; }
+}
