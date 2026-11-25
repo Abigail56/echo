@@ -13,7 +13,7 @@ export function supportsWebGL2(): boolean {
 }
 
 /** Fit arbitrary imported GLBs to a predictable, head-safe studio framing. */
-function fitModelToPreview(model: THREE.Group) {
+function fitModelToPreview(model: THREE.Object3D) {
   // Updating the cloned skeleton before measuring avoids stale pose/world matrices.
   model.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(model);
