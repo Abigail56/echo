@@ -84,27 +84,22 @@ async def import_document(
             403,
             f"Import requires {len(sections)} memory slots but only {100 - count} remain.",
         )
+    records = []
     for number, section in enumerate(sections, start=1):
         part_title = (f"{title} · part {number}/{len(sections)}"
                       if len(sections) > 1 else title)
-        db.add(Memory(
+        memory = Memory(
             echo_id=echo_id, title=part_title,
             content=section, visibility=visibility,
-        ))
+        )
+        records.append(memory)
+        db.add(memory)
     db.commit()
-    # Return all newly inserted records for UI feedback; no raw file stored.
-    records = db.exec(
-        select(Memory).where(Memory.echo_id == echo_id)
-        .order_by(Memory.created_at.desc(), Memory.id.desc())
-        .limit(len(sections))
-    ).all()
-    # Title-based filter also avoids accidentally including unrelated items
-    # with equal timestamps if concurrent imports happen.
-    inserted = [record for record in records if (
-        record.title == title or record.title.startswith(f"{title} · part ")
-    )]
+    # Returning exact newly created objects avoids timestamp and naming races.
+    for memory in records:
+        db.refresh(memory)
     return {
-        "memory": serialize(inserted[0]) if inserted else None,
+        "memory": serialize(records[0]),
         "sections": len(sections),
         "truncated": truncated,
         "notice": (
