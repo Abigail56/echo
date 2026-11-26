@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { studio } from '../lib/api';
 import DocumentImport from './DocumentImport';
 import DocumentLibrary from './DocumentLibrary';
+import KnowledgeSearch from './KnowledgeSearch';
 
 type MemoryVisibility = 'private' | 'public';
 type Memory = { id: string; title: string; content: string; visibility: MemoryVisibility; created_at?: string };
@@ -132,6 +133,10 @@ export default function MemoryPanel({ echoId }: { echoId: string }) {
     {error ? <p className="error" role="alert">{error}</p> : null}
     {notice ? <p className="voice-status" role="status">{notice}</p> : null}
 
+    <KnowledgeSearch echoId={echoId} revision={libraryRevision} onSelect={memoryId => {
+      document.getElementById(`memory-item-${memoryId}`)?.scrollIntoView({behavior: 'smooth', block: 'center'});
+      window.setTimeout(() => document.getElementById(`memory-edit-${memoryId}`)?.focus(), 350);
+    }} />
     <DocumentImport echoId={echoId} onImported={refresh} />
     <DocumentLibrary echoId={echoId} revision={libraryRevision} onChanged={refresh} />
     <div className="memory-v8-layout">
@@ -151,7 +156,7 @@ export default function MemoryPanel({ echoId }: { echoId: string }) {
         {loading ? <p className="memory-v8-empty" role="status">Loading approved memories…</p> : null}
         {!loading && !items.length && !error ? <div className="memory-v8-empty"><strong>Nothing stored yet.</strong><p>Your first approved memory will appear here.</p></div> : null}
         <div className="memory-v8-list">
-          {items.map(memory => <article className="memory-v8-item" key={memory.id}>
+          {items.map(memory => <article className="memory-v8-item" id={`memory-item-${memory.id}`} key={memory.id}>
             {editingId === memory.id ? <form className="form memory-v8-edit" onSubmit={event => void saveEdit(event)}>
               <label>Memory title<input required minLength={2} maxLength={120} value={editTitle} onChange={event => setEditTitle(event.target.value)} /></label>
               <label>Information<textarea required minLength={2} maxLength={5000} rows={5} value={editContent} onChange={event => setEditContent(event.target.value)} /></label>
@@ -164,7 +169,7 @@ export default function MemoryPanel({ echoId }: { echoId: string }) {
               <div className="memory-v8-item-top"><strong>{memory.title}</strong><span className={`badge ${memory.visibility === 'public' ? 'badge-public' : 'badge-private'}`}>{memory.visibility}</span></div>
               <p>{memory.content}</p>
               <div className="memory-v8-actions">
-                <button className="button button-outline small" type="button" disabled={Boolean(busyId)} onClick={() => beginEdit(memory)}>Edit memory</button>
+                <button id={`memory-edit-${memory.id}`} className="button button-outline small" type="button" disabled={Boolean(busyId)} onClick={() => beginEdit(memory)}>Edit memory</button>
                 <button className="memory-v8-delete" type="button" disabled={Boolean(busyId)} onClick={() => void remove(memory)}>{busyId === memory.id ? 'Deleting…' : 'Delete'}</button>
               </div>
             </>}

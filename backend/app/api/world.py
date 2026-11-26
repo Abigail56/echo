@@ -1,12 +1,13 @@
 from datetime import datetime, timezone
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, Query
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select, or_
 from app.core.db import session_dep
 from app.core.auth import current_user
 from app.core.limit import limit
 from app.core.document_import import MAX_UPLOAD_BYTES, document_title, extract_document_full, split_document_sections
+from app.core.knowledge_search import search_memories
 from app.models.entities import User, Echo, Memory, Connection, Community, Membership, Post, Conversation, Usage, KnowledgeDocument
 from app.core.ai import reply
 
@@ -49,6 +50,32 @@ def serialize(obj): return obj.model_dump(mode="json")
 def memories(echo_id: UUID, user: User = Depends(current_user), db: Session = Depends(session_dep)):
     own_echo(db, user, echo_id)
     return [serialize(x) for x in db.exec(select(Memory).where(Memory.echo_id == echo_id).order_by(Memory.created_at.desc())).all()]
+
+@router.get('/studio/{echo_id}/knowledge/search')
+def search_knowledge(
+    echo_id: UUID,
+    q: str = Query(default='', max_length=120),
+    visibility: str = Query(default='all'),
+    origin: str = Query(default='all'),
+    user: User = Depends(current_user),
+    db: Session = Depends(session_dep),
+):
+    own_echo(db, user, echo_id)
+    if visibility not in ('all', 'private', 'public') or origin not in ('all', 'document', 'manual'):
+        raise HTTPException(422, 'Invalid knowledge search filter')
+    if not q.strip():
+        return []
+    rows = db.exec(select(Memory).where(Memory.echo_id == echo_id)).all()
+    hits = search_memories(rows, q, visibility=visibility, origin=origin)
+    return [
+        {
+            'id': str(hit.id), 'title': hit.title, 'visibility': hit.visibility,
+            'document_id': str(hit.document_id) if hit.document_id else None,
+            'snippet': hit.snippet,
+        }
+        for hit in hits
+    ]
+
 
 @router.get('/studio/{echo_id}/documents')
 def documents(echo_id: UUID, user: User = Depends(current_user), db: Session = Depends(session_dep)):
