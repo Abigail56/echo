@@ -1,11 +1,13 @@
 """Deterministic, permission-aware retrieval of approved ECHO memories.
 
-No third-party embeddings or external API calls. Source selection happens before
-sending context to the configured AI provider; the LLM still generates the answer.
+No embeddings, external search or document storage. Each selected source is an
+approved memory record; a source being retrieved does *not* prove an AI answer.
 """
 import re
 from collections import Counter
 from collections.abc import Iterable
+from dataclasses import dataclass
+from uuid import UUID
 
 from app.models.entities import Memory
 
@@ -26,6 +28,97 @@ def _terms(value: str) -> list[str]:
     ]
 
 
+@dataclass(frozen=True)
+class KnowledgeSource:
+    id: UUID
+    title: str
+
+
+@dataclass(frozen=True)
+class RetrievedKnowledge:
+    context: str
+    sources: tuple[KnowledgeSource, ...]
+
+
+def _score(question: set[str], title: str, content: str) -> int:
+    title_terms = set(_terms(title))
+    body_terms = Counter(_terms(content))
+    title_hits = len(question & title_terms)
+    body_hits = sum(min(body_terms[word], 2) for word in question)
+    coverage = len(question & (title_terms | body_terms.keys()))
+    return 6 * title_hits + 2 * body_hits + 2 * coverage
+
+
+def _windows(value: str, size: int = 700, overlap: int = 90) -> list[str]:
+    """Bounded overlapping text windows, retaining long-document midsections."""
+    if not value:
+        return []
+    segments = []
+    step = size - overlap
+    for start in range(0, len(value), step):
+        part = value[start:start + size].strip()
+        if part:
+            segments.append(part)
+        if start + size >= len(value):
+            break
+    return segments
+
+
+def retrieve_approved_knowledge(
+    memories: Iterable[Memory],
+    question: str,
+    *,
+    public: bool,
+    max_memories: int = 8,
+    max_chars: int = 6500,
+) -> RetrievedKnowledge:
+    """Choose matching passages across records with a strict visibility boundary.
+
+    Source titles are metadata for transparency, not verified answer citations.
+    If no keywords match, no saved memories are placed into the AI context.
+    """
+    if max_memories <= 0 or max_chars <= 0:
+        return RetrievedKnowledge("", ())
+
+    keywords = set(_terms(question))
+    if not keywords:
+        return RetrievedKnowledge("", ())
+
+    candidates: list[tuple[int, str, Memory, str]] = []
+    for record in memories:
+        if public and record.visibility != "public":
+            continue
+        title_score = _score(keywords, record.title, "")
+        passages = _windows(record.content)
+        if not passages:
+            continue
+        # Choose the best matching passage from each memory, not its first 1400
+        # characters. This helps long imported documents with a relevant middle.
+        ranked = sorted(
+            ((title_score + _score(keywords, "", passage), passage) for passage in passages),
+            key=lambda item: -item[0],
+        )
+        best_score, passage = ranked[0]
+        if best_score <= 0:
+            continue
+        candidates.append((best_score, str(record.id), record, passage))
+
+    candidates.sort(key=lambda item: (-item[0], item[1]))
+    chunks: list[str] = []
+    sources: list[KnowledgeSource] = []
+    remaining = max_chars
+    for _, _, record, passage in candidates[:max_memories]:
+        label = f"[Saved memory: {record.title[:120]}] "
+        if remaining <= len(label) + 12:
+            break
+        snippet = label + passage[:min(700, remaining - len(label))]
+        chunks.append(snippet)
+        sources.append(KnowledgeSource(id=record.id, title=record.title))
+        remaining -= len(snippet) + 1
+
+    return RetrievedKnowledge("\n".join(chunks), tuple(sources))
+
+
 def relevant_memory_context(
     memories: Iterable[Memory],
     question: str,
@@ -34,47 +127,8 @@ def relevant_memory_context(
     max_memories: int = 8,
     max_chars: int = 6500,
 ) -> str:
-    """Return bounded, relevant approved facts. Private records never enter public context.
-
-    The retrieval heuristic is deliberately transparent: overlap in a memory's
-    title is worth more than overlap in its body. No matching facts means no
-    additional memory context, rather than arbitrarily leaking unrelated facts.
-    """
-    if max_memories <= 0 or max_chars <= 0:
-        return ""
-
-    keywords = set(_terms(question))
-    if not keywords:
-        return ""
-
-    candidates: list[tuple[float, str, Memory]] = []
-    for memory in memories:
-        if public and memory.visibility != "public":
-            continue
-
-        title_terms = set(_terms(memory.title))
-        body_terms = Counter(_terms(memory.content))
-        title_hits = len(keywords & title_terms)
-        body_hits = sum(min(body_terms[keyword], 2) for keyword in keywords)
-        if not title_hits and not body_hits:
-            continue
-
-        # Prefer several distinct keyword matches to repeated filler tokens.
-        coverage = len(keywords & (title_terms | body_terms.keys()))
-        score = 6 * title_hits + 2 * body_hits + 2 * coverage
-        candidates.append((score, str(memory.id), memory))
-
-    candidates.sort(key=lambda row: (-row[0], row[1]))
-
-    chunks: list[str] = []
-    remaining = max_chars
-    for _, _, memory in candidates[:max_memories]:
-        # Trim per-memory body so one long record cannot consume the full budget.
-        snippet = f"- {memory.title[:120]}: {memory.content[:1400]}"
-        if remaining < 100:
-            break
-        snippet = snippet[:remaining]
-        chunks.append(snippet)
-        remaining -= len(snippet) + 1
-
-    return "\n".join(chunks)
+    """Backwards-compatible context-only API."""
+    return retrieve_approved_knowledge(
+        memories, question, public=public, max_memories=max_memories,
+        max_chars=max_chars,
+    ).context
