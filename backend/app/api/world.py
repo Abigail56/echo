@@ -15,6 +15,11 @@ class MemoryIn(BaseModel):
     title: str = Field(min_length=2, max_length=120)
     content: str = Field(min_length=2, max_length=5000)
     visibility: str = Field(default="private", pattern="^(private|public)$")
+class MemoryUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=2, max_length=120)
+    content: str | None = Field(default=None, min_length=2, max_length=5000)
+    visibility: str | None = Field(default=None, pattern="^(private|public)$")
+
 class CommunityIn(BaseModel):
     slug: str = Field(pattern=r"^[a-z0-9-]{3,48}$")
     name: str = Field(min_length=3, max_length=100)
@@ -46,6 +51,21 @@ def add_memory(echo_id: UUID, body: MemoryIn, user: User = Depends(current_user)
         raise HTTPException(403, 'Memory limit reached')
     memory = Memory(echo_id=echo_id, **body.model_dump())
     db.add(memory); db.commit(); db.refresh(memory)
+    return serialize(memory)
+
+@router.patch('/studio/{echo_id}/memories/{memory_id}')
+def update_memory(echo_id: UUID, memory_id: UUID, body: MemoryUpdate,
+                  user: User = Depends(current_user), db: Session = Depends(session_dep)):
+    own_echo(db, user, echo_id)
+    memory = db.get(Memory, memory_id)
+    if not memory or memory.echo_id != echo_id:
+        raise HTTPException(404, 'Memory not found')
+    for key, value in body.model_dump(exclude_unset=True).items():
+        if value is not None:
+            setattr(memory, key, value)
+    db.add(memory)
+    db.commit()
+    db.refresh(memory)
     return serialize(memory)
 
 @router.delete('/studio/{echo_id}/memories/{memory_id}', status_code=204)
