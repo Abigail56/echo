@@ -83,7 +83,7 @@ def split_document_sections(text: str) -> list[str]:
     while start < len(text) and len(result) < MAX_DOCUMENT_SECTIONS:
         end = min(start + SECTION_CHARS, len(text))
         if end < len(text):
-            boundary = text.rfind(" ", start + SECTION_CHARS // 2, end + 1)
+            boundary = text.rfind(" ", start + SECTION_CHARS // 2, end)
             if boundary > start:
                 end = boundary + 1
         chunk = text[start:end].strip()
