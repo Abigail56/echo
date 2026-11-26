@@ -1,0 +1,15 @@
+/* Document groups – all changes require an authenticated owner. */
+.document-library-v14 { margin: 16px 0 23px; padding: clamp(18px,3vw,28px); border:1px solid #ab91e54f; border-radius:16px; background:linear-gradient(125deg,#1e1930,#141521); }
+.document-library-v14-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:19px; }
+.document-library-v14-heading h3 { margin:8px 0; font-size:clamp(1.45rem,2.5vw,2rem); }
+.document-library-v14-heading p { max-width:720px; margin:0; color:#bcb4c9; font-size:.8rem; line-height:1.6; }
+.document-library-v14-heading > span { color:#ad9fbc; font-size:.76rem; white-space:nowrap; }
+.document-library-v14-list { display:grid; gap:10px; }
+.document-library-v14-item { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:17px; border:1px solid #ffffff24; border-radius:12px; background:#ffffff08; }
+.document-library-v14-item > div:first-child { display:grid; min-width:0; gap:5px; }
+.document-library-v14-item strong { overflow-wrap:anywhere; font-size:.92rem; }
+.document-library-v14-item span { font-size:.75rem; color:#b7acc9; }
+.document-library-v14-actions { display:flex; align-items:center; flex-wrap:wrap; gap:9px; }
+.document-library-v14-actions .button { border-radius:8px; }
+.document-library-v14-empty { padding:18px; border:1px dashed #ad94d74d; border-radius:11px; color:#bdb2cb; font-size:.82rem; }
+@media(max-width:680px) { .document-library-v14-heading,.document-library-v14-item { flex-direction:column; align-items:flex-start; } .document-library-v14-actions { width:100%; } }
