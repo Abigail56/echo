@@ -13,12 +13,10 @@ from app.core.auth import current_user, hash_password, verify_password, token_fo
 from app.core.config import settings
 from app.core.limit import limit
 from app.core.ai import reply
-from app.core.knowledge import relevant_memory_context, relevant_document_context
-from app.models.entities import User, Echo, Memory, Usage, Conversation, ChatTurn, KnowledgeDocument
+from app.core.knowledge import retrieve_approved_knowledge, followup_retrieval_query
+from app.models.entities import User, Echo, Memory, Usage, Conversation, ChatTurn, KnowledgeDocument, UploadedDocument
 from app.api.schemas import Register, Login, UserOut, EchoCreate, EchoUpdate, EchoOut, PublicEcho, ChatRequest, ChatResponse
-from app.core.knowledge import retrieve_approved_knowledge
-from app.models.entities import User, Echo, Memory, Usage, Conversation, ChatTurn, KnowledgeDocument
-from app.api.schemas import Register, Login, UserOut, EchoCreate, EchoUpdate, EchoOut, PublicEcho, ChatRequest, ChatResponse, KnowledgeSourceOut
+from app.api.schemas import KnowledgeSourceOut
 
 router = APIRouter()
 
@@ -169,6 +167,7 @@ def delete_echo(echo_id: UUID, user: User = Depends(current_user), db: Session =
     # Remove dependent records before deleting the identity.
     for memory in db.exec(select(Memory).where(Memory.echo_id == echo_id)).all(): db.delete(memory)
     for document in db.exec(select(KnowledgeDocument).where(KnowledgeDocument.echo_id == echo_id)).all(): db.delete(document)
+    for document in db.exec(select(UploadedDocument).where(UploadedDocument.echo_id == echo_id)).all(): db.delete(document)
     for turn in db.exec(select(ChatTurn).where(ChatTurn.echo_id == echo_id)).all(): db.delete(turn)
     for convo in db.exec(select(Conversation).where((Conversation.requester_echo_id == echo_id) | (Conversation.recipient_echo_id == echo_id))).all(): db.delete(convo)
     db.delete(echo); db.commit()
@@ -210,11 +209,17 @@ async def private_chat(echo_id: UUID, body: ChatRequest, request: Request,
     usage = db.exec(select(Usage).where(Usage.user_id == user.id, Usage.period == period)).first()
     if usage and usage.chat_count >= 100: raise HTTPException(429, 'Monthly free chat limit reached')
     approved = db.exec(select(Memory).where(Memory.echo_id == echo_id)).all()
-    context = relevant_memory_context(approved, body.message, public=False)
-    documents = db.exec(select(KnowledgeDocument).where(KnowledgeDocument.echo_id == echo_id, KnowledgeDocument.owner_id == user.id)).all()
-    context += '\n' + relevant_document_context(documents, body.message, public=False)
-    retrieval = retrieve_approved_knowledge(approved, body.message, public=False)
-    context = retrieval.context
+    # Extracted-text documents use a separate table after resolving the
+    # conflicting legacy import implementations. Adapt them only in memory.
+    uploads = db.exec(
+        select(UploadedDocument).where(
+            UploadedDocument.echo_id == echo_id, UploadedDocument.owner_id == user.id,
+        )
+    ).all()
+    approved.extend(Memory(
+        id=item.id, echo_id=echo_id, title=item.filename[:120],
+        content=item.extracted_text, visibility=item.visibility,
+    ) for item in uploads)
     # Use persisted owner history instead of untrusted client-authored assistant turns.
     previous = db.exec(
         select(ChatTurn).where(ChatTurn.echo_id == echo_id, ChatTurn.owner_id == user.id)
@@ -226,6 +231,11 @@ async def private_chat(echo_id: UUID, body: ChatRequest, request: Request,
             {"role": "user", "content": turn.user_message},
             {"role": "assistant", "content": turn.assistant_message[:2000]},
         ])
+    retrieval_question = followup_retrieval_query(
+        body.message, [turn.user_message for turn in reversed(previous)],
+    )
+    retrieval = retrieve_approved_knowledge(approved, retrieval_question, public=False)
+    context = retrieval.context
     response = await reply(
         echo, ChatRequest(message=body.message, history=trusted_history),
         public=False, additional_knowledge=context,
@@ -259,11 +269,20 @@ async def public_chat(handle: str, body: ChatRequest, request: Request, db: Sess
     echo = db.exec(select(Echo).where(Echo.handle == handle, Echo.is_public == True)).first()
     if not echo: raise HTTPException(status_code=404, detail="Public ECHO not found")
     approved = db.exec(select(Memory).where(Memory.echo_id == echo.id, Memory.visibility == 'public')).all()
-    context = relevant_memory_context(approved, body.message, public=True)
-    documents = db.exec(select(KnowledgeDocument).where(KnowledgeDocument.echo_id == echo.id, KnowledgeDocument.visibility == 'public')).all()
-    context += '\n' + relevant_document_context(documents, body.message, public=True)
-    return await reply(echo, body, public=True, additional_knowledge=context)
-    retrieval = retrieve_approved_knowledge(approved, body.message, public=True)
+    public_uploads = db.exec(
+        select(UploadedDocument).where(
+            UploadedDocument.echo_id == echo.id, UploadedDocument.visibility == 'public',
+        )
+    ).all()
+    approved.extend(Memory(
+        id=item.id, echo_id=echo.id, title=item.filename[:120],
+        content=item.extracted_text, visibility="public",
+    ) for item in public_uploads)
+    # Only user-authored text from this request can influence public retrieval.
+    # Public chat history is client-supplied and is never treated as trusted facts.
+    prior_questions = [message.content for message in body.history if message.role == 'user']
+    retrieval_question = followup_retrieval_query(body.message, prior_questions)
+    retrieval = retrieve_approved_knowledge(approved, retrieval_question, public=True)
     context = retrieval.context
     response = await reply(echo, body, public=True, additional_knowledge=context)
     response.sources = [
