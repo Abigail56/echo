@@ -163,6 +163,7 @@ async def import_document(
         records.append(memory)
         db.add(memory)
     db.commit()
+    db.refresh(document)
     # Returning exact newly created objects avoids timestamp and naming races.
     for memory in records:
         db.refresh(memory)
