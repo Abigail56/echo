@@ -156,16 +156,7 @@ export type KnowledgeDocument = {
   id: string; echo_id: string; title: string;
   visibility: 'private' | 'public'; section_count: number; created_at: string;
 };
-export type KnowledgeSearchHit = {
-  id: string;
-  title: string;
-  visibility: 'private' | 'public';
-  document_id: string | null;
-  snippet: string;
-};
 export const studio = {
-  searchKnowledge: (id:string, q:string, visibility:'all'|'private'|'public'='all', origin:'all'|'document'|'manual'='all') =>
-    request<KnowledgeSearchHit[]>(`/studio/${encodeURIComponent(id)}/knowledge/search?q=${encodeURIComponent(q)}&visibility=${visibility}&origin=${origin}`),
   documents: (id:string) => request<KnowledgeDocument[]>(`/studio/${id}/documents`),
   setDocumentVisibility: (echoId:string,documentId:string,visibility:'private'|'public',allow_public:boolean) =>
     request<KnowledgeDocument>(`/studio/${echoId}/documents/${documentId}`, {
