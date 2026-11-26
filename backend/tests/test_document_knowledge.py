@@ -1,7 +1,7 @@
 """Document-ingestion security, privacy, and lifecycle tests."""
 import asyncio
 from io import BytesIO
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from docx import Document as DocxDocument
@@ -84,11 +84,11 @@ def test_document_endpoints_enforce_owner_and_delete(monkeypatch):
             api.list_documents(echo.id, stranger, db)
         assert exc.value.status_code == 404
         with pytest.raises(HTTPException):
-            api.update_document_visibility(echo.id, created["id"], api.DocumentVisibility(visibility="public"), stranger, db)
+            api.update_document_visibility(echo.id, UUID(created["id"]), api.DocumentVisibility(visibility="public"), stranger, db)
 
         changed = api.update_document_visibility(echo.id, created["id"], api.DocumentVisibility(visibility="public"), owner, db)
         assert changed["visibility"] == "public"
-        api.remove_document(echo.id, created["id"], owner, db)
+        api.remove_document(echo.id, UUID(created["id"]), owner, db)
         assert api.list_documents(echo.id, owner, db) == []
 
 
