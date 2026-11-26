@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { documents, type KnowledgeDocument } from '../lib/api';
+import { documents, type UploadedKnowledgeDocument } from '../lib/api';
 
 const EXTENSIONS = ['.txt', '.md', '.pdf', '.docx'];
 const MAX_BYTES = 2 * 1024 * 1024;
 type Visibility = 'private' | 'public';
 
 export default function DocumentPanel({ echoId }: { echoId: string }) {
-  const [items, setItems] = useState<KnowledgeDocument[]>([]);
+  const [items, setItems] = useState<UploadedKnowledgeDocument[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [visibility, setVisibility] = useState<Visibility>('private');
   const [loading, setLoading] = useState(true);
@@ -46,7 +46,7 @@ export default function DocumentPanel({ echoId }: { echoId: string }) {
     } finally { setBusy(false); }
   }
 
-  async function changeVisibility(item: KnowledgeDocument, next: Visibility) {
+  async function changeVisibility(item: UploadedKnowledgeDocument, next: Visibility) {
     if (activeId) return;
     if (next === 'public' && !window.confirm('Make this entire document available to public ECHO chat? Only choose Public if every extracted detail is safe to share.')) return;
     setActiveId(item.id);
@@ -60,7 +60,7 @@ export default function DocumentPanel({ echoId }: { echoId: string }) {
     finally { setActiveId(''); }
   }
 
-  async function remove(item: KnowledgeDocument) {
+  async function remove(item: UploadedKnowledgeDocument) {
     if (activeId || !window.confirm(`Permanently delete the extracted knowledge from “${item.filename}”?`)) return;
     setActiveId(item.id);
     setError('');
