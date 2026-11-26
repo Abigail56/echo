@@ -15,7 +15,7 @@ from app.core.limit import limit
 from app.core.ai import reply
 from app.core.knowledge import retrieve_approved_knowledge
 from app.models.entities import User, Echo, Memory, Usage, Conversation, ChatTurn
-from app.api.schemas import Register, Login, UserOut, EchoCreate, EchoUpdate, EchoOut, PublicEcho, ChatRequest, ChatResponse
+from app.api.schemas import Register, Login, UserOut, EchoCreate, EchoUpdate, EchoOut, PublicEcho, ChatRequest, ChatResponse, KnowledgeSourceOut
 
 router = APIRouter()
 
@@ -224,7 +224,7 @@ async def private_chat(echo_id: UUID, body: ChatRequest, request: Request,
         public=False, additional_knowledge=context,
     )
     response.sources = [
-        {"id": source.id, "title": source.title}
+        KnowledgeSourceOut(id=source.id, title=source.title)
         for source in retrieval.sources
     ]
     if not usage: usage = Usage(user_id=user.id, period=period)
@@ -256,7 +256,7 @@ async def public_chat(handle: str, body: ChatRequest, request: Request, db: Sess
     context = retrieval.context
     response = await reply(echo, body, public=True, additional_knowledge=context)
     response.sources = [
-        {"id": source.id, "title": source.title}
+        KnowledgeSourceOut(id=source.id, title=source.title)
         for source in retrieval.sources
     ]
     return response
