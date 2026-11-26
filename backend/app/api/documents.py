@@ -10,7 +10,7 @@ from app.core.auth import current_user
 from app.core.db import session_dep
 from app.core.documents import MAX_UPLOAD_BYTES, extract_document, normalized_filename
 from app.core.limit import limit
-from app.models.entities import Echo, KnowledgeDocument, User
+from app.models.entities import Echo, UploadedDocument, User
 
 router = APIRouter()
 
@@ -21,7 +21,7 @@ def owned(echo_id: UUID, user: User, db: Session) -> None:
         raise HTTPException(404, "ECHO not found")
 
 
-def metadata(document: KnowledgeDocument) -> dict:
+def metadata(document: UploadedDocument) -> dict:
     return {
         "id": str(document.id),
         "filename": document.filename,
@@ -36,19 +36,19 @@ class DocumentVisibility(BaseModel):
     visibility: Literal["private", "public"]
 
 
-@router.get("/studio/{echo_id}/documents")
+@router.get("/studio/{echo_id}/uploaded-documents")
 def list_documents(echo_id: UUID, user: User = Depends(current_user),
                    db: Session = Depends(session_dep)):
     owned(echo_id, user, db)
     rows = db.exec(
-        select(KnowledgeDocument)
-        .where(KnowledgeDocument.echo_id == echo_id, KnowledgeDocument.owner_id == user.id)
-        .order_by(KnowledgeDocument.created_at.desc())
+        select(UploadedDocument)
+        .where(UploadedDocument.echo_id == echo_id, UploadedDocument.owner_id == user.id)
+        .order_by(UploadedDocument.created_at.desc())
     ).all()
     return [metadata(row) for row in rows]
 
 
-@router.post("/studio/{echo_id}/documents", status_code=201)
+@router.post("/studio/{echo_id}/uploaded-documents", status_code=201)
 def upload_document(echo_id: UUID, request: Request,
                     file: UploadFile = File(...),
                     visibility: Literal["private", "public"] = Form("private"),
@@ -57,9 +57,9 @@ def upload_document(echo_id: UUID, request: Request,
     owned(echo_id, user, db)
     limit(request, f"document-upload:{user.id}", 8, 3600)
     existing = db.exec(
-        select(KnowledgeDocument).where(
-            KnowledgeDocument.echo_id == echo_id,
-            KnowledgeDocument.owner_id == user.id,
+        select(UploadedDocument).where(
+            UploadedDocument.echo_id == echo_id,
+            UploadedDocument.owner_id == user.id,
         )
     ).all()
     if len(existing) >= 10:
@@ -70,7 +70,7 @@ def upload_document(echo_id: UUID, request: Request,
     finally:
         file.file.close()
     content, mime, truncated = extract_document(raw, name)
-    document = KnowledgeDocument(
+    document = UploadedDocument(
         echo_id=echo_id, owner_id=user.id, filename=name, visibility=visibility,
         content_type=mime, extracted_text=content,
     )
@@ -80,13 +80,13 @@ def upload_document(echo_id: UUID, request: Request,
     return {**metadata(document), "truncated": truncated}
 
 
-@router.patch("/studio/{echo_id}/documents/{document_id}")
+@router.patch("/studio/{echo_id}/uploaded-documents/{document_id}")
 def update_document_visibility(echo_id: UUID, document_id: UUID,
                                body: DocumentVisibility,
                                user: User = Depends(current_user),
                                db: Session = Depends(session_dep)):
     owned(echo_id, user, db)
-    document = db.get(KnowledgeDocument, document_id)
+    document = db.get(UploadedDocument, document_id)
     if document is None or document.echo_id != echo_id or document.owner_id != user.id:
         raise HTTPException(404, "Document not found")
     document.visibility = body.visibility
@@ -96,12 +96,12 @@ def update_document_visibility(echo_id: UUID, document_id: UUID,
     return metadata(document)
 
 
-@router.delete("/studio/{echo_id}/documents/{document_id}", status_code=204)
+@router.delete("/studio/{echo_id}/uploaded-documents/{document_id}", status_code=204)
 def remove_document(echo_id: UUID, document_id: UUID,
                     user: User = Depends(current_user),
                     db: Session = Depends(session_dep)):
     owned(echo_id, user, db)
-    document = db.get(KnowledgeDocument, document_id)
+    document = db.get(UploadedDocument, document_id)
     if document is None or document.echo_id != echo_id or document.owner_id != user.id:
         raise HTTPException(404, "Document not found")
     db.delete(document)
