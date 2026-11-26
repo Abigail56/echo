@@ -15,7 +15,6 @@ import '../styles/documents-v11.css';
 import '../styles/document-import-v11.css';
 import '../styles/knowledge-sources-v12.css';
 import '../styles/document-library-v14.css';
-import '../styles/knowledge-search-v15.css';
 export default function App({ Component, pageProps }: AppProps) {
   return <>
     <Head>
