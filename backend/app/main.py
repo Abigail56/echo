@@ -36,14 +36,13 @@ async def guard_writes(request: Request, call_next):
             and request.url.path == "/api/v1/avatar/live/avatars/image"
             and content_type == "multipart/form-data"
         )
-        if content_type != "application/json" and not (is_avatar_model_import or is_liveavatar_image or is_document_upload):
         is_document_import = (
             request.method == "POST"
             and request.url.path.startswith("/api/v1/studio/")
             and request.url.path.endswith("/documents/import")
             and content_type == "multipart/form-data"
         )
-        if content_type != "application/json" and not (is_avatar_model_import or is_liveavatar_image or is_document_import):
+        if content_type != "application/json" and not (is_avatar_model_import or is_liveavatar_image or is_document_import or is_document_upload):
             return JSONResponse(status_code=415, content={"detail": "JSON required"})
     return await call_next(request)
 
