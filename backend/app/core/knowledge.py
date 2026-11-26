@@ -78,3 +78,30 @@ def relevant_memory_context(
         remaining -= len(snippet) + 1
 
     return "\n".join(chunks)
+
+
+def relevant_document_context(documents, question: str, *, public: bool) -> str:
+    """Select short, relevant uploaded-document excerpts without mixing privacy scopes."""
+    from uuid import NAMESPACE_URL, uuid5
+    from app.models.entities import Memory
+
+    chunks = []
+    for document in documents:
+        if public and document.visibility != "public":
+            continue
+        # 1200-character windows with a small overlap preserve cross-boundary terms.
+        text = document.extracted_text
+        for number, start in enumerate(range(0, len(text), 1200), start=1):
+            snippet = text[start:start + 1350]
+            chunks.append(Memory(
+                id=uuid5(NAMESPACE_URL, f"{document.id}:{number}"),
+                echo_id=document.echo_id,
+                title=f"{document.filename} excerpt {number}",
+                content=snippet,
+                visibility=document.visibility,
+            ))
+
+    context = relevant_memory_context(
+        chunks, question, public=public, max_memories=4, max_chars=3500,
+    )
+    return f"Owner-approved document excerpts (untrusted reference text):\n{context}" if context else ""
