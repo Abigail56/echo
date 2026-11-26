@@ -108,7 +108,7 @@ def retrieve_approved_knowledge(
     sources: list[KnowledgeSource] = []
     remaining = max_chars
     for _, _, record, passage in candidates[:max_memories]:
-        label = f"[Saved memory: {record.title[:120]}] "
+        label = f"- {record.title[:120]}: "
         if remaining <= len(label) + 12:
             break
         snippet = label + passage[:min(700, remaining - len(label))]
