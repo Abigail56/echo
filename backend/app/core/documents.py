@@ -5,7 +5,7 @@ non-macro DOCX are accepted; binary source files are discarded after extraction.
 """
 from io import BytesIO
 from pathlib import PurePath
-from zipfile import BadZipFile, ZipFile
+from zipfile import ZipFile
 
 from fastapi import HTTPException
 
@@ -78,7 +78,7 @@ def extract_document(raw: bytes, filename: str) -> tuple[str, str, bool]:
             mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     except HTTPException:
         raise
-    except (UnicodeError, BadZipFile, ValueError, KeyError, OSError, Exception) as exc:
+    except Exception as exc:
         # Never return parser internals, paths, or document text to clients.
         raise HTTPException(422, "Could not extract text from this document.") from exc
 
