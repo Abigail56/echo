@@ -4,8 +4,10 @@ import { echoes } from '../lib/api';
 import type { Message } from '../types';
 
 type HistoryTurn = { id: string; user_message: string; assistant_message: string; created_at: string };
+type KnowledgeSource = { id: string; title: string };
+type ChatDisplayMessage = Message & { sources?: KnowledgeSource[] };
 
-function toMessages(turns: HistoryTurn[]): Message[] {
+function toMessages(turns: HistoryTurn[]): ChatDisplayMessage[] {
   return turns.flatMap(turn => [
     { role: 'user' as const, content: turn.user_message },
     { role: 'assistant' as const, content: turn.assistant_message },
@@ -14,7 +16,7 @@ function toMessages(turns: HistoryTurn[]): Message[] {
 
 /** Owner-only chat uses database history; public conversations remain ephemeral. */
 export default function Chat({ path, name, echoId }: { path: string; name: string; echoId?: string }) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatDisplayMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(Boolean(echoId));
@@ -49,7 +51,7 @@ export default function Chat({ path, name, echoId }: { path: string; name: strin
       const data = await echoes.chat(path, message, history);
       setMessages(current => [...current,
         { role: 'user' as const, content: message },
-        { role: 'assistant' as const, content: data.reply + (data.demo ? ' (Demo mode)' : '') },
+        { role: 'assistant' as const, content: data.reply + (data.demo ? ' (Demo mode)' : ''), sources: data.sources || [] },
       ].slice(-200));
       setDraft('');
     } catch (cause) {
@@ -79,13 +81,20 @@ export default function Chat({ path, name, echoId }: { path: string; name: strin
   return <section className="chat card chat-v9" aria-label={`Chat with ${name}`}>
     <div className="chat-v9-header">
       <div><div className="chat-heading"><span className="online" /> Chat with {name} <span className="muted">· AI, not a human</span></div>
-        <p className="chat-v9-description">{echoId ? 'Your latest 100 completed exchanges are saved to your private ECHO account history.' : 'This public chat is not saved to the ECHO owner’s chat history.'}</p></div>
+        <p className="chat-v9-description">{echoId ? 'Your latest 100 completed exchanges are saved privately. Knowledge references are shown on new replies only.' : 'This public chat is not saved to the ECHO owner’s chat history.'}</p></div>
       {echoId ? <button className="button button-outline small" type="button" disabled={busy || loading || clearing || !messages.length} onClick={() => void clearHistory()}>{clearing ? 'Deleting…' : 'Clear history'}</button> : null}
     </div>
     <div className="messages" role="log" aria-live="polite" aria-relevant="additions">
       {loading ? <div className="empty-chat" role="status">Loading conversation history…</div> : null}
       {!loading && messages.length === 0 ? <div className="empty-chat">Start a conversation with your ECHO.</div> : null}
-      {messages.map((message, index) => <div key={index} className={`bubble ${message.role}`}>{message.content}</div>)}
+      {messages.map((message, index) => <div key={index} className={`chat-v12-message ${message.role}`}>
+        <div className={`bubble ${message.role}`}>{message.content}</div>
+        {message.role === 'assistant' && message.sources && message.sources.length > 0 ? <details className="chat-v12-knowledge">
+          <summary>Saved knowledge considered ({message.sources.length})</summary>
+          <ul>{message.sources.map(source => <li key={source.id}>{source.title}</li>)}</ul>
+          <p>These memory records were included as context. They are not independently verified citations or proof that every claim is correct.</p>
+        </details> : null}
+      </div>)}
       {busy ? <div className="bubble assistant">Thinking…</div> : null}
     </div>
     {error ? <p className="error" role="alert">{error}</p> : null}

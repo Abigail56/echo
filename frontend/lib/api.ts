@@ -78,7 +78,7 @@ export const echoes = {
   update: (id: string, body: EchoInput) => request<Echo>(`/echoes/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   remove: (id: string) => request<void>(`/echoes/${id}`, { method: 'DELETE', body: '{}' }),
   public: (handle: string) => request<PublicEcho>(`/public/${encodeURIComponent(handle)}`),
-  chat: (path: string, message: string, history: Message[], signal?: AbortSignal) => request<{ reply: string; demo: boolean }>(path, { method: 'POST', body: JSON.stringify({ message, history }), signal }),
+  chat: (path: string, message: string, history: Message[], signal?: AbortSignal) => request<{ reply: string; demo: boolean; sources?: Array<{id:string;title:string}> }>(path, { method: 'POST', body: JSON.stringify({ message, history }), signal }),
   history: (id: string) => request<Array<{id:string;user_message:string;assistant_message:string;created_at:string}>>(`/echoes/${encodeURIComponent(id)}/chat/history`),
   clearHistory: (id: string) => request<void>(`/echoes/${encodeURIComponent(id)}/chat/history`, { method: 'DELETE', body: '{}' }),
 };
