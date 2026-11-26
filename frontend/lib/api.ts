@@ -100,6 +100,7 @@ export const world = {
 export const studio = {
   memories: (id:string) => request<any[]>(`/studio/${id}/memories`),
   addMemory: (id:string, data:{title:string;content:string;visibility:string}) => request<any>(`/studio/${id}/memories`,{method:'POST',body:JSON.stringify(data)}),
+  updateMemory: (id:string,memoryId:string,data:{title?:string;content?:string;visibility?:'private'|'public'}) => request<any>(`/studio/${id}/memories/${memoryId}`,{method:'PATCH',body:JSON.stringify(data)}),
   removeMemory: (id:string,memoryId:string) => request<void>(`/studio/${id}/memories/${memoryId}`,{method:'DELETE',body:'{}'}),
   billing: () => request<any>('/billing/overview'),
 };
