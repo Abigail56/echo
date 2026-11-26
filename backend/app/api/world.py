@@ -55,7 +55,29 @@ def memories(echo_id: UUID, user: User = Depends(current_user), db: Session = De
 def search_knowledge(
     echo_id: UUID,
     q: str = Query(default='', max_length=120),
-    visibility: str = Query(default='all', pattern='^(all|private|public)
+    visibility: str = Query(default='all'),
+    origin: str = Query(default='all'),
+    user: User = Depends(current_user),
+    db: Session = Depends(session_dep),
+):
+    own_echo(db, user, echo_id)
+    if visibility not in ('all', 'private', 'public') or origin not in ('all', 'document', 'manual'):
+        raise HTTPException(422, 'Invalid knowledge search filter')
+    if not q.strip():
+        return []
+    rows = db.exec(select(Memory).where(Memory.echo_id == echo_id)).all()
+    hits = search_memories(rows, q, visibility=visibility, origin=origin)
+    return [
+        {
+            'id': str(hit.id), 'title': hit.title, 'visibility': hit.visibility,
+            'document_id': str(hit.document_id) if hit.document_id else None,
+            'snippet': hit.snippet,
+        }
+        for hit in hits
+    ]
+
+
+@router.get('/studio/{echo_id}/documents')
 def documents(echo_id: UUID, user: User = Depends(current_user), db: Session = Depends(session_dep)):
     own_echo(db, user, echo_id)
     groups = db.exec(
