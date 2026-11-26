@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select, or_
 from app.core.db import session_dep
 from app.core.auth import current_user
 from app.core.limit import limit
+from app.core.document_import import MAX_UPLOAD_BYTES, document_title, extract_document
 from app.models.entities import User, Echo, Memory, Connection, Community, Membership, Post, Conversation, Usage
 from app.core.ai import reply
 
@@ -52,6 +53,41 @@ def add_memory(echo_id: UUID, body: MemoryIn, user: User = Depends(current_user)
     memory = Memory(echo_id=echo_id, **body.model_dump())
     db.add(memory); db.commit(); db.refresh(memory)
     return serialize(memory)
+
+@router.post('/studio/{echo_id}/documents/import', status_code=201)
+async def import_document(
+    echo_id: UUID,
+    request: Request,
+    file: UploadFile = File(...),
+    visibility: str = Form("private", pattern="^(private|public)$"),
+    allow_public: bool = Form(False),
+    user: User = Depends(current_user),
+    db: Session = Depends(session_dep),
+):
+    own_echo(db, user, echo_id)
+    limit(request, f"document-import:{user.id}", 10, 3600)
+    if visibility == "public" and not allow_public:
+        raise HTTPException(422, "Public document sharing requires explicit confirmation.")
+    if len(db.exec(select(Memory).where(Memory.echo_id == echo_id)).all()) >= 100:
+        raise HTTPException(403, "Memory limit reached.")
+    title, _ = document_title(file.filename or "")
+    try:
+        # Read a bounded amount. Uploaded original content is not stored.
+        raw = await file.read(MAX_UPLOAD_BYTES + 1)
+    finally:
+        await file.close()
+    content, truncated = extract_document(raw, file.filename or "")
+    memory = Memory(echo_id=echo_id, title=title, content=content, visibility=visibility)
+    db.add(memory)
+    db.commit()
+    db.refresh(memory)
+    return {
+        "memory": serialize(memory),
+        "truncated": truncated,
+        "notice": ("Only the first 5,000 characters of extracted text were saved. Review and edit the memory."
+                   if truncated else "Extracted text saved as an editable memory."),
+    }
+
 
 @router.patch('/studio/{echo_id}/memories/{memory_id}')
 def update_memory(echo_id: UUID, memory_id: UUID, body: MemoryUpdate,
