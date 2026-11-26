@@ -49,6 +49,18 @@ class Memory(SQLModel, table=True):
     visibility: str = Field(default="private", max_length=12)
     created_at: datetime = Field(default_factory=now)
 
+class KnowledgeDocument(SQLModel, table=True):
+    """Extracted text only; uploaded source bytes are not retained."""
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    echo_id: UUID = Field(foreign_key="echo.id", index=True)
+    owner_id: UUID = Field(foreign_key="user.id", index=True)
+    filename: str = Field(max_length=180)
+    visibility: str = Field(default="private", max_length=12)
+    content_type: str = Field(max_length=100)
+    extracted_text: str = Field(max_length=30000)
+    created_at: datetime = Field(default_factory=now)
+
+
 class ChatTurn(SQLModel, table=True):
     """A successfully completed, private owner/ECHO exchange."""
     id: UUID = Field(default_factory=uuid4, primary_key=True)

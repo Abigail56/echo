@@ -11,6 +11,7 @@ import '../styles/immersive-v6.css';
 import '../styles/inbox-v7.css';
 import '../styles/memory-v8.css';
 import '../styles/chat-history-v9.css';
+import '../styles/documents-v11.css';
 import '../styles/document-import-v11.css';
 import '../styles/knowledge-sources-v12.css';
 import '../styles/document-library-v14.css';

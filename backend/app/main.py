@@ -7,6 +7,7 @@ from app.api.world import router as world_router
 from app.api.immersive import router as immersive_router
 from app.api.avatar import router as avatar_router
 from app.api.live_avatar import router as live_avatar_router
+from app.api.documents import router as document_router
 
 app = FastAPI(title="ECHO API", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=[settings().FRONTEND_URL], allow_credentials=True,
@@ -24,11 +25,18 @@ async def guard_writes(request: Request, call_next):
             and request.url.path == "/api/v1/avatar/model/import"
             and content_type == "multipart/form-data"
         )
+        is_document_upload = (
+            request.method == "POST"
+            and request.url.path.startswith("/api/v1/studio/")
+            and request.url.path.endswith("/documents")
+            and content_type == "multipart/form-data"
+        )
         is_liveavatar_image = (
             request.method == "POST"
             and request.url.path == "/api/v1/avatar/live/avatars/image"
             and content_type == "multipart/form-data"
         )
+        if content_type != "application/json" and not (is_avatar_model_import or is_liveavatar_image or is_document_upload):
         is_document_import = (
             request.method == "POST"
             and request.url.path.startswith("/api/v1/studio/")
@@ -44,6 +52,7 @@ app.include_router(world_router, prefix="/api/v1")
 app.include_router(immersive_router, prefix="/api/v1")
 app.include_router(avatar_router, prefix="/api/v1")
 app.include_router(live_avatar_router, prefix="/api/v1")
+app.include_router(document_router, prefix="/api/v1")
 from app.api.privacy import router as privacy_router
 app.include_router(privacy_router, prefix="/api/v1")
 @app.get("/api/v1/health")
