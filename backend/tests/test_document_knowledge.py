@@ -86,7 +86,7 @@ def test_document_endpoints_enforce_owner_and_delete(monkeypatch):
         with pytest.raises(HTTPException):
             api.update_document_visibility(echo.id, UUID(created["id"]), api.DocumentVisibility(visibility="public"), stranger, db)
 
-        changed = api.update_document_visibility(echo.id, created["id"], api.DocumentVisibility(visibility="public"), owner, db)
+        changed = api.update_document_visibility(echo.id, UUID(created["id"]), api.DocumentVisibility(visibility="public"), owner, db)
         assert changed["visibility"] == "public"
         api.remove_document(echo.id, UUID(created["id"]), owner, db)
         assert api.list_documents(echo.id, owner, db) == []
