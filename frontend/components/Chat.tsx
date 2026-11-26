@@ -48,8 +48,8 @@ export default function Chat({ path, name, echoId }: { path: string; name: strin
       const history = echoId ? [] : messages.slice(-8);
       const data = await echoes.chat(path, message, history);
       setMessages(current => [...current,
-        { role: 'user', content: message },
-        { role: 'assistant', content: data.reply + (data.demo ? ' (Demo mode)' : '') },
+        { role: 'user' as const, content: message },
+        { role: 'assistant' as const, content: data.reply + (data.demo ? ' (Demo mode)' : '') },
       ].slice(-200));
       setDraft('');
     } catch (cause) {
