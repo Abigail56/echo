@@ -38,6 +38,16 @@ class Memory(SQLModel, table=True):
     visibility: str = Field(default="private", max_length=12)
     created_at: datetime = Field(default_factory=now)
 
+class ChatTurn(SQLModel, table=True):
+    """A successfully completed, private owner/ECHO exchange."""
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    echo_id: UUID = Field(foreign_key="echo.id", index=True)
+    owner_id: UUID = Field(foreign_key="user.id", index=True)
+    user_message: str = Field(max_length=2000)
+    assistant_message: str = Field(max_length=8000)
+    created_at: datetime = Field(default_factory=now, index=True)
+
+
 class Connection(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     requester_id: UUID = Field(foreign_key="user.id", index=True)

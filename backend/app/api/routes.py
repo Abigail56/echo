@@ -13,7 +13,7 @@ from app.core.auth import current_user, hash_password, verify_password, token_fo
 from app.core.config import settings
 from app.core.limit import limit
 from app.core.ai import reply
-from app.models.entities import User, Echo, Memory, Usage, Conversation
+from app.models.entities import User, Echo, Memory, Usage, Conversation, ChatTurn
 from app.api.schemas import Register, Login, UserOut, EchoCreate, EchoUpdate, EchoOut, PublicEcho, ChatRequest, ChatResponse
 
 router = APIRouter()
@@ -164,6 +164,7 @@ def delete_echo(echo_id: UUID, user: User = Depends(current_user), db: Session =
     echo = owned(echo_id, user, db)
     # Remove dependent records before deleting the identity.
     for memory in db.exec(select(Memory).where(Memory.echo_id == echo_id)).all(): db.delete(memory)
+    for turn in db.exec(select(ChatTurn).where(ChatTurn.echo_id == echo_id)).all(): db.delete(turn)
     for convo in db.exec(select(Conversation).where((Conversation.requester_echo_id == echo_id) | (Conversation.recipient_echo_id == echo_id))).all(): db.delete(convo)
     db.delete(echo); db.commit()
 
@@ -172,6 +173,28 @@ def public_echo(handle: str, db: Session = Depends(session_dep)):
     echo = db.exec(select(Echo).where(Echo.handle == handle, Echo.is_public == True)).first()
     if not echo: raise HTTPException(status_code=404, detail="Public ECHO not found")
     return echo
+
+@router.get("/echoes/{echo_id}/chat/history")
+def owner_chat_history(echo_id: UUID, user: User = Depends(current_user),
+                       db: Session = Depends(session_dep)):
+    owned(echo_id, user, db)
+    turns = db.exec(
+        select(ChatTurn)
+        .where(ChatTurn.echo_id == echo_id, ChatTurn.owner_id == user.id)
+        .order_by(ChatTurn.created_at.desc(), ChatTurn.id.desc())
+        .limit(100)
+    ).all()
+    return [turn.model_dump(mode="json") for turn in reversed(turns)]
+
+
+@router.delete("/echoes/{echo_id}/chat/history", status_code=204)
+def clear_owner_chat_history(echo_id: UUID, user: User = Depends(current_user),
+                             db: Session = Depends(session_dep)):
+    owned(echo_id, user, db)
+    for turn in db.exec(select(ChatTurn).where(ChatTurn.echo_id == echo_id, ChatTurn.owner_id == user.id)).all():
+        db.delete(turn)
+    db.commit()
+
 
 @router.post("/echoes/{echo_id}/chat", response_model=ChatResponse)
 async def private_chat(echo_id: UUID, body: ChatRequest, request: Request,
@@ -183,11 +206,39 @@ async def private_chat(echo_id: UUID, body: ChatRequest, request: Request,
     if usage and usage.chat_count >= 100: raise HTTPException(429, 'Monthly free chat limit reached')
     approved = db.exec(select(Memory).where(Memory.echo_id == echo_id)).all()
     context = '\n'.join(f'{m.title}: {m.content}' for m in approved)[:8000]
-    response = await reply(echo, body, public=False, additional_knowledge=context)
+    # Use persisted owner history instead of untrusted client-authored assistant turns.
+    previous = db.exec(
+        select(ChatTurn).where(ChatTurn.echo_id == echo_id, ChatTurn.owner_id == user.id)
+        .order_by(ChatTurn.created_at.desc(), ChatTurn.id.desc()).limit(4)
+    ).all()
+    trusted_history = []
+    for turn in reversed(previous):
+        trusted_history.extend([
+            {"role": "user", "content": turn.user_message},
+            {"role": "assistant", "content": turn.assistant_message[:2000]},
+        ])
+    response = await reply(
+        echo, ChatRequest(message=body.message, history=trusted_history),
+        public=False, additional_knowledge=context,
+    )
     if not usage: usage = Usage(user_id=user.id, period=period)
     usage.chat_count += 1
-    db.add(usage); db.commit()
+    db.add(usage)
+    db.add(ChatTurn(
+        echo_id=echo_id, owner_id=user.id,
+        user_message=body.message, assistant_message=response.reply[:8000],
+    ))
+    db.flush()
+    # Retain at most 100 completed exchanges for this owner and ECHO.
+    old_turns = db.exec(
+        select(ChatTurn).where(ChatTurn.echo_id == echo_id, ChatTurn.owner_id == user.id)
+        .order_by(ChatTurn.created_at.desc(), ChatTurn.id.desc()).offset(100)
+    ).all()
+    for old_turn in old_turns:
+        db.delete(old_turn)
+    db.commit()
     return response
+
 
 @router.post("/public/{handle}/chat", response_model=ChatResponse)
 async def public_chat(handle: str, body: ChatRequest, request: Request, db: Session = Depends(session_dep)):
