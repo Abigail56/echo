@@ -1,0 +1,55 @@
+/* ECHO World introductions & connections v7 */
+.inbox-v7 { max-width: 1280px; padding-top: 30px; }
+.inbox-v7-hero { display: grid; grid-template-columns: minmax(0,1fr) 220px; align-items: center; gap: 30px; padding: clamp(25px,4vw,54px); border: 1px solid #bda2ef4d; border-radius: 21px; background: radial-gradient(ellipse at 90% 20%,#7654b95a,transparent 50%),linear-gradient(125deg,#1c182e,#101321); }
+.inbox-v7-hero h1 { margin: 23px 0 17px; font-size: clamp(2.6rem,5vw,5.2rem); line-height: 1.04; }
+.inbox-v7-hero h1 em { font-style: normal; color: #c5b2fd; }
+.inbox-v7-hero p { max-width: 630px; margin: 0 0 24px; color: #c8c0d2; font-size: .94rem; }
+.inbox-v7-hero .button { border-radius: 9px; }
+.inbox-v7-hero-visual { position: relative; display: grid; place-items: center; width: 190px; height: 190px; border: 1px solid #b8a2e85b; border-radius: 50%; background: radial-gradient(circle,#8062ba66,#2b1c4855 70%,transparent); }
+.inbox-v7-hero-visual span { font-size: 5.4rem; color: #d5c7ff; }
+.inbox-v7-hero-visual i { position: absolute; width: 16px; height: 16px; border-radius: 50%; border: 1px solid #d0b6ff; background: #8c6bcc; }
+.inbox-v7-hero-visual i:nth-of-type(1) { top: 7%; left: 25%; }
+.inbox-v7-hero-visual i:nth-of-type(2) { right: -2%; top: 39%; }
+.inbox-v7-hero-visual i:nth-of-type(3) { bottom: 8%; left: 17%; }
+.inbox-v7-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin: 15px 0 40px; }
+.inbox-v7-stats > div { min-height: 118px; display: flex; flex-direction: column; justify-content: space-between; gap: 13px; padding: 22px; border: 1px solid #ffffff22; border-radius: 14px; background: #171625; }
+.inbox-v7-stats span { color: #b8b0c4; font-size: .77rem; line-height: 1.4; }
+.inbox-v7-stats strong { font-family: var(--font-display); font-size: 2.2rem; font-weight: 500; }
+.inbox-v7-status { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin: 0 0 19px; }
+.inbox-v7-status .button { border-radius: 9px; }
+.inbox-v7-loading { padding: 22px; border: 1px solid #b6a0f238; border-radius: 13px; color: #b9afc8; background: #161522; }
+.inbox-v7 .inbox-section { margin-top: 34px; }
+.inbox-v7-list { gap: 13px; }
+.inbox-v7-card { padding: 25px; border: 1px solid #b8a1ed32; border-radius: 15px; background: linear-gradient(160deg,#1e1a2e,#12131e); }
+.inbox-v7-card > .button { margin-top: 9px; border-radius: 9px; }
+.inbox-v7-card .inbox-card-head { margin-bottom: 14px; }
+.inbox-v7-card .inbox-card-head .badge { border-radius: 7px; text-transform: capitalize; }
+.inbox-v7-badge.is-complete { color: #98e5c1; border-color: #98e5c15e; }
+.inbox-v7-card p { font-size: .86rem; line-height: 1.65; }
+.inbox-v7-transcript { margin-top: 22px; border: 1px solid #ffffff24; border-radius: 10px; background: #0d0f1b; }
+.inbox-v7-transcript summary { cursor: pointer; padding: 14px 16px; color: #d8cafd; font-size: .82rem; }
+.inbox-v7-transcript summary:focus-visible { outline: 2px solid #bd9cfa; }
+.inbox-v7-transcript pre { overflow: auto; margin: 0; padding: 19px; border-top: 1px solid #ffffff1e; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .82rem; line-height: 1.75; }
+.inbox-v7-connection-info { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.inbox-v7-connection-info > div:last-child { display: grid; gap: 5px; min-width: 0; }
+.inbox-v7-connection-info strong { overflow-wrap: anywhere; font-size: 1rem; }
+.inbox-v7-connection-info .muted { font-size: .76rem; }
+.inbox-v7-initial { display: grid; place-items: center; flex-shrink: 0; width: 46px; height: 46px; border: 1px solid #b89af273; border-radius: 14px; background: #6f50b354; color: #e4d4ff; font-size: 1.3rem; }
+.inbox-v7-empty { padding: 29px; border: 1px solid #b19bdb40; border-radius: 14px; background: #171623; }
+.inbox-v7-empty h3 { margin: 0 0 8px; font-size: 1.4rem; }
+.inbox-v7-empty p { margin: 0 0 12px; color: #bfb6ce; font-size: .84rem; }
+.inbox-v7-footnote { margin: 30px 0 0; color: #a9a2b7; font-size: .76rem; }
+@media(max-width:780px) {
+  .inbox-v7-hero { grid-template-columns: 1fr; }
+  .inbox-v7-hero-visual { display: none; }
+}
+@media(max-width:620px) {
+  .inbox-v7 { padding-top: 18px; }
+  .inbox-v7-hero { padding: 25px 21px; }
+  .inbox-v7-hero h1 { font-size: clamp(2.55rem,10vw,4rem); }
+  .inbox-v7-stats { gap: 8px; }
+  .inbox-v7-stats > div { min-height: 105px; padding: 12px; }
+  .inbox-v7-stats span { font-size: .64rem; }
+  .inbox-v7-stats strong { font-size: 1.8rem; }
+  .inbox-v7-card { padding: 17px; }
+}
