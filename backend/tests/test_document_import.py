@@ -10,7 +10,7 @@ from sqlalchemy.pool import StaticPool
 from pypdf import PdfWriter
 
 import app.api.world as world
-from app.core.document_import import document_title, extract_document, MAX_UPLOAD_BYTES
+from app.core.document_import import document_title, extract_document, extract_document_full, split_document_sections, MAX_UPLOAD_BYTES
 from app.models.entities import Echo, Memory, User
 
 
@@ -91,3 +91,41 @@ def test_document_import_requires_owner_and_explicit_public_permission(monkeypat
         public_result = asyncio.run(world.import_document(echo.id, request(), upload("bio.txt", b"Public portfolio projects"), "public", True, owner, db))
         assert public_result["memory"]["visibility"] == "public"
         assert len(db.exec(select(Memory)).all()) == 2
+
+
+def test_long_document_sections_preserve_later_content():
+    raw = (("Background of the project. " * 250) + "LATE-ROUTEBRIDGE-DETAIL " + ("Additional context. " * 200)).encode()
+    text, truncated = extract_document_full(raw, "project.md")
+    parts = split_document_sections(text)
+    assert len(parts) > 1
+    assert any("LATE-ROUTEBRIDGE-DETAIL" in section for section in parts)
+    assert "".join(parts).replace(" ", "") == text.replace(" ", "")
+    assert all(len(section) <= 4500 for section in parts)
+    assert truncated is False
+
+
+def test_long_document_import_is_atomic_and_uses_visibility(monkeypatch):
+    monkeypatch.setattr(world, "limit", lambda *args: None)
+    with make_db() as db:
+        owner = User(id=uuid4(), email="long-owner@example.com", name="Owner", password_hash="unused")
+        echo = Echo(owner_id=owner.id, handle="long-doc", name="Long Document")
+        db.add_all([owner, echo])
+        db.commit()
+        doc = ("Public deployment details " * 520).encode()
+        result = asyncio.run(world.import_document(
+            echo.id, request(), upload("full.md", doc), "public", True, owner, db))
+        stored = db.exec(select(Memory).where(Memory.echo_id == echo.id)).all()
+        assert result["sections"] == len(stored) > 1
+        assert all(part.visibility == "public" for part in stored)
+        assert all("full · part" in part.title for part in stored)
+
+        # Capacity checks must reject the complete upload before writing.
+        for index in range(100 - len(stored) - 1):
+            db.add(Memory(echo_id=echo.id, title=f"Extra {index}", content="Unrelated", visibility="private"))
+        db.commit()
+        before = len(db.exec(select(Memory)).all())
+        with pytest.raises(HTTPException) as err:
+            asyncio.run(world.import_document(
+                echo.id, request(), upload("second.txt", doc), "private", False, owner, db))
+        assert err.value.status_code == 403
+        assert len(db.exec(select(Memory)).all()) == before
