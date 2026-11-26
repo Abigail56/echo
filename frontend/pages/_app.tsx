@@ -9,6 +9,7 @@ import '../styles/live-presence-v4.css';
 import '../styles/echo-world-v5.css';
 import '../styles/immersive-v6.css';
 import '../styles/inbox-v7.css';
+import '../styles/memory-v8.css';
 export default function App({ Component, pageProps }: AppProps) {
   return <>
     <Head>
