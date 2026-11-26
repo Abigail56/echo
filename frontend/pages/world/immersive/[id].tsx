@@ -1,6 +1,8 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
+import Head from 'next/head';
+import Link from 'next/link';
 import Layout from '../../../components/Layout';
 import { API_BASE_URL, apiWebSocketUrl, echoes } from '../../../lib/api';
 import { openMicrophone } from '../../../lib/media';
@@ -36,6 +38,7 @@ export default function Immersive() {
   const [messages, setMessages] = useState<string[]>([]);
   const [text, setText] = useState('');
   const [connected, setConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [voiceConnected, setVoiceConnected] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState('Voice off');
   const [micActive, setMicActive] = useState(false);
@@ -279,10 +282,12 @@ export default function Immersive() {
     if (typeof id !== 'string') return;
     const ws = new WebSocket(getWebSocketUrl(id));
     socket.current = ws;
-    ws.onopen = () => setConnected(true);
+    ws.onopen = () => { setConnected(true); setConnectionStatus('connected'); setError(''); };
     ws.onclose = () => {
       setConnected(false);
+      setConnectionStatus('disconnected');
       closeVoice();
+      setPeople([]);
       setVoiceStatus('Room connection lost · reload to reconnect');
     };
     ws.onerror = () => setError('Unable to connect to the authorized room signaling service.');
@@ -454,20 +459,56 @@ export default function Immersive() {
 
   function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!text.trim()) return;
+    if (!connected || !text.trim()) return;
     send({ type: 'chat', message: text.slice(0, 500) });
     setText('');
   }
 
   return <Layout loggedIn>
-    <main className="container immersive-room">
-      <div className="eyebrow"><span className="eyebrow-line" /> ECHO WORLD / LIVE ROOM</div>
-      <div className="immersive-room-heading"><div><h1>Shared perspective.</h1><p className="muted">A live room for ideas, voice and conversation.</p></div><span className={`studio-state ${connected ? 'is-connected' : ''}`}><i /> {connected ? 'SIGNAL CONNECTED' : 'RECONNECTING'}</span></div>
-      <div className="immersive-room-status">{people.length + (connected ? 1 : 0)} present <span>·</span> Authorized participants only <span>·</span> Live session</div>
-      <WorldScene people={people}/>
-      <div className="room-movement"><span>POSITION</span><button onClick={() => move(0, -1)} aria-label="Move forward">↑</button><button onClick={() => move(-1, 0)} aria-label="Move left">←</button><button onClick={() => move(0, 1)} aria-label="Move backward">↓</button><button onClick={() => move(1, 0)} aria-label="Move right">→</button></div>
+    <Head><title>Live Room | ECHO World</title><meta name="description" content="Join an ECHO World room for live conversation, optional peer voice and an accessible 3D scene." /></Head>
+    <main className="container immersive-room immersive-v6">
+      <header className="immersive-v6-hero">
+        <div><span className="section-kicker">ECHO WORLD / LIVE ROOM</span><h1>Make room for<br /><em>conversation.</em></h1>
+          <p>Chat, connect by voice and explore a shared 3D space together.</p>
+          <Link className="button button-outline small" href="/world/rooms">← All rooms</Link>
+        </div>
+        <div className={`immersive-v6-connection ${connectionStatus === 'connected' ? 'is-online' : ''}`} role="status" aria-live="polite">
+          <span className="immersive-v6-connection-dot" /> {connectionStatus === 'connected' ? 'Room connected' : connectionStatus === 'connecting' ? 'Connecting to room…' : 'Connection lost'}
+        </div>
+      </header>
+      {connectionStatus === 'disconnected' ? <div className="immersive-v6-disconnected" role="alert">
+        <div><strong>Room connection ended.</strong><p>The live signal was interrupted. Your microphone and peer connections have been stopped.</p></div>
+        <button className="button" type="button" onClick={() => window.location.reload()}>Reconnect to room ↻</button>
+      </div> : null}
+      <div className="immersive-v6-main-grid">
+        <section className="immersive-v6-stage" aria-label="Room stage">
+          <div className="immersive-v6-stage-top"><span>THE SHARED SPACE</span><span>{people.length + (connected ? 1 : 0)} {people.length + (connected ? 1 : 0) === 1 ? 'participant' : 'participants'} online</span></div>
+          <WorldScene people={people}/>
+          <div className="immersive-v6-stage-bottom"><span>Drag to orbit · Scroll to zoom</span><span>3D is optional for joining the conversation</span></div>
+        </section>
+        <aside className="immersive-v6-participants" aria-label="Room participants">
+          <div className="immersive-v6-aside-head"><span className="section-kicker">PEOPLE HERE</span><strong>{people.length + (connected ? 1 : 0)}</strong></div>
+          <div className="immersive-v6-participant-list">
+            {connected ? <div className="immersive-v6-person"><span className="immersive-v6-person-avatar">Y</span><div><strong>You</strong><small>{micActive ? muted ? 'Microphone muted' : 'Microphone on' : 'Microphone off'}</small></div><span className="immersive-v6-presence-dot" /></div> : null}
+            {people.map(person => <div className="immersive-v6-person" key={person.id}>
+              <span className="immersive-v6-person-avatar">{person.name.trim().charAt(0).toUpperCase() || 'E'}</span>
+              <div><strong>{person.name}</strong><small>{person.muted ? 'Muted' : person.speaking ? 'Speaking' : 'In the room'}</small></div>
+              <span className={`immersive-v6-presence-dot ${person.speaking ? 'is-speaking' : ''}`} />
+            </div>)}
+            {!connected && !people.length ? <p className="muted">Waiting for room participants…</p> : null}
+          </div>
+          <div className="immersive-v6-movement">
+            <span className="section-kicker">MOVE IN WORLD</span>
+            <div className="immersive-v6-pad">
+              <button type="button" onClick={() => move(0, -1)} disabled={!connected} aria-label="Move forward">↑</button>
+              <div><button type="button" onClick={() => move(-1, 0)} disabled={!connected} aria-label="Move left">←</button><button type="button" onClick={() => move(0, 1)} disabled={!connected} aria-label="Move backward">↓</button><button type="button" onClick={() => move(1, 0)} disabled={!connected} aria-label="Move right">→</button></div>
+            </div>
+            <p>Movement changes your presence position for other room participants.</p>
+          </div>
+        </aside>
+      </div>
 
-      <section className="card voice-controls" aria-label="Room voice controls">
+      <section className="card voice-controls immersive-v6-voice" aria-label="Room voice controls">
         <h2>Voice communication</h2>
         <p className="muted">Audio is sent peer-to-peer to authorized participants in this room. It is not recorded or stored. Mic level drives only speaking presence; the current model has no phoneme/viseme blendshapes.</p>
         <p role="status" aria-live="polite">{voiceStatus} · {voiceConnected ? 'Peer audio connected' : 'Waiting for voice peers'}</p>
@@ -512,11 +553,14 @@ export default function Immersive() {
         {error && <p className="error" role="alert">{error}</p>}
       </section>
 
-      <section className="room-messages" aria-label="Room messages">{messages.map((message, index) => <p key={index}>{message}</p>)}</section>
-      <form className="actions" onSubmit={sendMessage}>
+      <section className="immersive-v6-chat" aria-label="Room text conversation">
+        <div className="immersive-v6-chat-head"><div><span className="section-kicker">LIVE CONVERSATION</span><h2>Room chat</h2></div><span>{connected ? "Connected" : "Offline"}</span></div>
+        <div className="room-messages" aria-label="Room messages" role="log" aria-live="polite" aria-relevant="additions">{messages.length ? messages.map((message, index) => <p key={index}>{message}</p>) : <p className="muted">Messages will appear here when someone starts a conversation.</p>}</div>
+      <form className="actions immersive-v6-chat-form" onSubmit={sendMessage}>
         <input value={text} maxLength={500} onChange={event => setText(event.target.value)} aria-label="Room message" placeholder="Write a message…"/>
-        <button className="button" type="submit" disabled={!connected}>Send</button>
+        <button className="button" type="submit" disabled={!connected || !text.trim()}>Send message ↗</button>
       </form>
+      </section>
       <div ref={audioContainer} aria-hidden="true" style={{ display: 'none' }}/>
       <p className="muted smallprint">Room access is checked by the API before signaling. WebRTC uses a public STUN server; networks requiring TURN relay may not connect. This is not a virtual camera or conferencing integration.</p>
     </main>
