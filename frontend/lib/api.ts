@@ -101,7 +101,7 @@ export const world = {
 };
 export async function importKnowledgeDocument(
   echoId: string, file: File, visibility: 'private' | 'public', confirmPublic: boolean,
-): Promise<{memory:{id:string;title:string;content:string;visibility:string};truncated:boolean;notice:string}> {
+): Promise<{memory:{id:string;title:string;content:string;visibility:string};sections:number;truncated:boolean;notice:string}> {
   const body = new FormData();
   body.append('file', file);
   body.append('visibility', visibility);
