@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { studio } from '../lib/api';
 import DocumentImport from './DocumentImport';
+import DocumentLibrary from './DocumentLibrary';
 
 type MemoryVisibility = 'private' | 'public';
 type Memory = { id: string; title: string; content: string; visibility: MemoryVisibility; created_at?: string };
@@ -23,11 +24,13 @@ export default function MemoryPanel({ echoId }: { echoId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [libraryRevision, setLibraryRevision] = useState(0);
 
   const refresh = useCallback(async () => {
     try {
       const memories = await studio.memories(echoId) as Memory[];
       setItems(memories);
+      setLibraryRevision(current => current + 1);
       setError('');
     } catch (cause) {
       setError(errorMessage(cause));
@@ -130,6 +133,7 @@ export default function MemoryPanel({ echoId }: { echoId: string }) {
     {notice ? <p className="voice-status" role="status">{notice}</p> : null}
 
     <DocumentImport echoId={echoId} onImported={refresh} />
+    <DocumentLibrary echoId={echoId} revision={libraryRevision} onChanged={refresh} />
     <div className="memory-v8-layout">
       <form className="form memory-v8-create" onSubmit={event => void add(event)}>
         <div><span className="section-kicker">ADD KNOWLEDGE</span><h3>Teach your ECHO.</h3><p>Write a specific fact or detail that your representative should know.</p></div>
