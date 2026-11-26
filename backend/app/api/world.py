@@ -355,17 +355,6 @@ def billing(user: User = Depends(current_user), db: Session = Depends(session_de
     u = db.exec(select(Usage).where(Usage.user_id == user.id, Usage.period == period)).first()
     return {'plan': 'free', 'chat_count': u.chat_count if u else 0, 'chat_limit': 100, 'period': period,
             'billing_enabled': False, 'message': 'Billing provider not configured; paid plans are not available.'}
-),
-    origin: str = Query(default='all', pattern='^(all|document|manual)
-def documents(echo_id: UUID, user: User = Depends(current_user), db: Session = Depends(session_dep)):
-    own_echo(db, user, echo_id)
-    groups = db.exec(
-        select(KnowledgeDocument).where(KnowledgeDocument.echo_id == echo_id)
-        .order_by(KnowledgeDocument.created_at.desc(), KnowledgeDocument.id.desc())
-    ).all()
-    return [serialize(group) for group in groups]
-
-
 @router.patch('/studio/{echo_id}/documents/{document_id}')
 def update_document_visibility(
     echo_id: UUID,
