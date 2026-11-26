@@ -28,7 +28,7 @@ async def guard_writes(request: Request, call_next):
         is_document_upload = (
             request.method == "POST"
             and request.url.path.startswith("/api/v1/studio/")
-            and request.url.path.endswith("/documents")
+            and request.url.path.endswith("/uploaded-documents")
             and content_type == "multipart/form-data"
         )
         is_liveavatar_image = (
