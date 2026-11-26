@@ -872,6 +872,21 @@ export default function MeetingAvatar() {
   const selectedTavusFace = tavusFaces.find(face => face.id === faceId);
   const selectedEcho = echoProfiles.find(echo => echo.id === echoId);
   const sandboxAvatarBlocked = Boolean(provider === 'liveavatar' && sandbox && avatarId && avatarId !== SANDBOX_AVATAR_ID);
+  const startUnavailableReason = active || connecting ? '' : provider === 'liveavatar'
+    ? !providerStatus?.liveavatar.authenticated
+      ? 'LiveAvatar is not authenticated. Check the API configuration and refresh status.'
+      : !avatarId
+        ? 'Choose a supported LiveAvatar face from the avatar library.'
+        : sandboxAvatarBlocked
+          ? 'Sandbox supports only Wayne. Select Wayne for a sandbox test, or configure a credited production session.'
+          : mode === 'FULL' && shareEchoPersona && !echoId
+            ? 'Select an ECHO profile, or turn off persona sharing.'
+            : ''
+    : !providerStatus?.tavus.authenticated || !providerStatus?.tavus.pal_accessible
+      ? 'Tavus PAL is unavailable for this account. Check the provider status and plan.'
+      : !faceId && !providerStatus?.tavus.default_face_id
+        ? 'Select an eligible Tavus face before starting a session.'
+        : '';
   const activeMicrophone = microphones.find(device => device.deviceId === microphoneId);
   const tavusAudioTrack = tavusMicStreamRef.current?.getAudioTracks()[0];
   const selectedAvatarKey = `${provider}:${provider === 'tavus' ? faceId : avatarId}`;
@@ -1032,6 +1047,7 @@ export default function MeetingAvatar() {
         <button className="button ghost" type="button" onClick={() => void toggleMute()} disabled={!active}>{muted ? 'Unmute microphone' : 'Mute microphone'}</button>
         <button className="button ghost" type="button" onClick={() => { void refreshProviderData(); void refreshMicrophones(); }} disabled={active}>Refresh status</button>
       </div>
+      {startUnavailableReason ? <p className="warning-badge" role="status">Why Start is unavailable: {startUnavailableReason}</p> : null}
       <div className="media-issues" role="status">
         <p><strong>Session:</strong> {status}</p>
         <p><strong>Transport:</strong> {connectionState}{quality ? ` · quality ${quality}` : ''}</p>

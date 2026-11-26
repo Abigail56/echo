@@ -392,6 +392,10 @@ export default function AvatarCreator({ onModelUrl }: { onModelUrl: (url: string
           <input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} disabled={busy || !videoProviderReady} />
           I own or have permission to use this person’s likeness, and consent to sending this image to LiveAvatar for avatar training.
         </label>
+        {!videoProviderReady ? <p className="muted" role="status">Avatar creation is unavailable until LiveAvatar authenticates and supports image-avatar training for this account.</p>
+          : !photo ? <p className="muted" role="status">Choose a JPEG/PNG photo or capture a webcam frame to enable creation.</p>
+          : !consent ? <p className="muted" role="status">Review the selected photo and check the likeness-consent box to enable creation.</p>
+          : null}
         <button className="button" type="submit" disabled={!photo || !consent || busy || !videoProviderReady}>
           {busy ? 'Submitting image…' : 'Create video avatar'}
         </button>
@@ -435,6 +439,8 @@ export default function AvatarCreator({ onModelUrl }: { onModelUrl: (url: string
             <input type="checkbox" checked={tavusFaceConsent} onChange={event => setTavusFaceConsent(event.target.checked)} disabled={!tavusReady || busy} />
             I own or have permission to use this person’s likeness and authorize Tavus to process this training media.
           </label>
+          {tavusReady && !tavusFaceName.trim() ? <p className="muted" role="status">Enter an avatar name and a publicly accessible HTTPS training URL.</p> : null}
+          {tavusReady && tavusFaceName.trim() && !tavusFaceConsent ? <p className="muted" role="status">Confirm your likeness rights and consent before creating a Tavus avatar.</p> : null}
           <button className="button" type="submit" disabled={!tavusReady || !tavusFaceConsent || !tavusFaceName.trim() || busy}>
             {busy ? 'Submitting…' : 'Create Tavus avatar'}
           </button>

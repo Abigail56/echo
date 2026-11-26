@@ -51,3 +51,15 @@
   .avatar-v3-links { width: 100%; flex-direction: column; }
   .avatar-v3-links .button { width: 100%; }
 }
+
+/* WebGL-independent, audio-responsive ECHO preview. */
+.avatar-v3-tools .human-avatar-fallback {display:flex; flex-direction:column;justify-content:center;align-items:center;gap:32px;padding:24px;text-align:center;background:radial-gradient(ellipse at 50% 35%,#362651 0,#151525 54%,#101321 100%)}
+.human-avatar-fallback-face {position:relative;width:clamp(130px,24vw,190px);height:clamp(155px,28vw,230px);border-radius:45% 45% 42% 42%;border:3px solid var(--avatar-accent,#4dd9ec);background:linear-gradient(145deg,#483567,#241d3b);box-shadow:0 0 45px #a164f733,inset 0 -18px 22px #0003;flex-shrink:0}
+.human-avatar-fallback-eye {position:absolute;top:39%;width:13px;height:15px;background:#e3faff;border-radius:50%;box-shadow:0 0 12px #88eef6}
+.human-avatar-fallback-eye.left {left:29%}
+.human-avatar-fallback-eye.right {right:29%}
+.human-avatar-fallback-mouth {position:absolute;top:68%;left:50%;transform:translateX(-50%);border-radius:40%;background:#100d1e;border:2px solid #f0a8df;transition:height 65ms linear,width 65ms linear}
+.human-avatar-fallback-caption {display:flex;flex-direction:column;gap:8px;max-width:450px;color:#dad4e9;font-size:.82rem;line-height:1.55}
+.human-avatar-fallback-caption strong {color:#fff;font-size:1.04rem}
+.human-avatar-fallback-details {color:#aaa4bb;font-size:.74rem}
+@media(max-width:620px){.avatar-v3-tools .human-avatar-fallback{gap:14px;padding:14px}.human-avatar-fallback-caption{font-size:.75rem}}

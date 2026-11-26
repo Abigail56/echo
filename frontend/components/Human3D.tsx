@@ -134,10 +134,24 @@ export default function Human3D({
   }
 
   if (!webglAvailable) {
+    // Keep microphone-driven feedback usable even when WebGL 2 is blocked by
+    // GPU settings, remote desktop environments or browser restrictions.
+    const open = Math.min(1, Math.max(0, mouthOpen));
     return (
-      <div className="human-avatar human-avatar-error" role="status">
-        <strong>3D rendering unavailable</strong>
-        <span>This browser session could not create a WebGL 2 context. Try Chrome or Edge with graphics acceleration enabled, then reload.</span>
+      <div className="human-avatar human-avatar-fallback" role="img"
+        aria-label={`2D ECHO avatar preview${talking ? ', reacting to speech' : ''}`}
+        style={{ '--avatar-accent': color } as React.CSSProperties}>
+        <div className="human-avatar-fallback-face" aria-hidden="true">
+          <span className="human-avatar-fallback-eye left" />
+          <span className="human-avatar-fallback-eye right" />
+          <span className="human-avatar-fallback-mouth"
+            style={{ height: `${Math.round(5 + open * 26)}px`, width: `${Math.round(32 + open * 5)}px` }} />
+        </div>
+        <div className="human-avatar-fallback-caption">
+          <strong>2D preview active</strong>
+          <span>Your microphone can animate this preview without WebGL. For an imported 3D GLB, enable hardware graphics acceleration and WebGL 2.</span>
+          <span className="human-avatar-fallback-details">3D rendering is unavailable in this browser session. Photorealistic video avatars require a separate provider connection.</span>
+        </div>
       </div>
     );
   }
