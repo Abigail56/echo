@@ -7,6 +7,7 @@ import '../styles/avatar-studio-v3.css';
 import '../styles/meeting.css';
 import '../styles/live-presence-v4.css';
 import '../styles/echo-world-v5.css';
+import '../styles/immersive-v6.css';
 export default function App({ Component, pageProps }: AppProps) {
   return <>
     <Head>
