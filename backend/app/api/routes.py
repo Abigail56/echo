@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.core.limit import limit
 from app.core.ai import reply
 from app.core.knowledge import retrieve_approved_knowledge
-from app.models.entities import User, Echo, Memory, Usage, Conversation, ChatTurn
+from app.models.entities import User, Echo, Memory, Usage, Conversation, ChatTurn, KnowledgeDocument
 from app.api.schemas import Register, Login, UserOut, EchoCreate, EchoUpdate, EchoOut, PublicEcho, ChatRequest, ChatResponse, KnowledgeSourceOut
 
 router = APIRouter()
@@ -165,6 +165,7 @@ def delete_echo(echo_id: UUID, user: User = Depends(current_user), db: Session =
     echo = owned(echo_id, user, db)
     # Remove dependent records before deleting the identity.
     for memory in db.exec(select(Memory).where(Memory.echo_id == echo_id)).all(): db.delete(memory)
+    for document in db.exec(select(KnowledgeDocument).where(KnowledgeDocument.echo_id == echo_id)).all(): db.delete(document)
     for turn in db.exec(select(ChatTurn).where(ChatTurn.echo_id == echo_id)).all(): db.delete(turn)
     for convo in db.exec(select(Conversation).where((Conversation.requester_echo_id == echo_id) | (Conversation.recipient_echo_id == echo_id))).all(): db.delete(convo)
     db.delete(echo); db.commit()

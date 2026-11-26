@@ -117,7 +117,18 @@ export async function importKnowledgeDocument(
   return response.json();
 }
 
+export type KnowledgeDocument = {
+  id: string; echo_id: string; title: string;
+  visibility: 'private' | 'public'; section_count: number; created_at: string;
+};
 export const studio = {
+  documents: (id:string) => request<KnowledgeDocument[]>(`/studio/${id}/documents`),
+  setDocumentVisibility: (echoId:string,documentId:string,visibility:'private'|'public',allow_public:boolean) =>
+    request<KnowledgeDocument>(`/studio/${echoId}/documents/${documentId}`, {
+      method:'PATCH',body:JSON.stringify({visibility,allow_public}),
+    }),
+  removeDocument: (echoId:string,documentId:string) =>
+    request<void>(`/studio/${echoId}/documents/${documentId}`, {method:'DELETE',body:'{}'}),
   memories: (id:string) => request<any[]>(`/studio/${id}/memories`),
   addMemory: (id:string, data:{title:string;content:string;visibility:string}) => request<any>(`/studio/${id}/memories`,{method:'POST',body:JSON.stringify(data)}),
   updateMemory: (id:string,memoryId:string,data:{title?:string;content?:string;visibility?:'private'|'public'}) => request<any>(`/studio/${id}/memories/${memoryId}`,{method:'PATCH',body:JSON.stringify(data)}),

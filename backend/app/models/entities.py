@@ -30,9 +30,20 @@ class Echo(SQLModel, table=True):
     created_at: datetime = Field(default_factory=now)
 
 
+class KnowledgeDocument(SQLModel, table=True):
+    """Owned metadata for an imported document; original file is not retained."""
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    echo_id: UUID = Field(foreign_key="echo.id", index=True)
+    title: str = Field(max_length=120)
+    visibility: str = Field(default="private", max_length=12)
+    section_count: int = Field(default=0)
+    created_at: datetime = Field(default_factory=now)
+
+
 class Memory(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     echo_id: UUID = Field(foreign_key="echo.id", index=True)
+    document_id: UUID | None = Field(default=None, foreign_key="knowledgedocument.id", index=True)
     title: str = Field(max_length=120)
     content: str = Field(max_length=5000)
     visibility: str = Field(default="private", max_length=12)
