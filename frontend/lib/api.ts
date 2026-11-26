@@ -78,7 +78,7 @@ export const echoes = {
   update: (id: string, body: EchoInput) => request<Echo>(`/echoes/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   remove: (id: string) => request<void>(`/echoes/${id}`, { method: 'DELETE', body: '{}' }),
   public: (handle: string) => request<PublicEcho>(`/public/${encodeURIComponent(handle)}`),
-  chat: (path: string, message: string, history: Message[], signal?: AbortSignal) => request<{ reply: string; demo: boolean }>(path, { method: 'POST', body: JSON.stringify({ message, history }), signal }),
+  chat: (path: string, message: string, history: Message[], signal?: AbortSignal) => request<{ reply: string; demo: boolean; sources?: Array<{id:string;title:string}> }>(path, { method: 'POST', body: JSON.stringify({ message, history }), signal }),
   history: (id: string) => request<Array<{id:string;user_message:string;assistant_message:string;created_at:string}>>(`/echoes/${encodeURIComponent(id)}/chat/history`),
   clearHistory: (id: string) => request<void>(`/echoes/${encodeURIComponent(id)}/chat/history`, { method: 'DELETE', body: '{}' }),
 };
@@ -134,7 +134,45 @@ export const documents = {
     }),
 };
 
+export async function importKnowledgeDocument(
+  echoId: string, file: File, visibility: 'private' | 'public', confirmPublic: boolean,
+): Promise<{memory:{id:string;title:string;content:string;visibility:string};sections:number;truncated:boolean;notice:string}> {
+  const body = new FormData();
+  body.append('file', file);
+  body.append('visibility', visibility);
+  body.append('allow_public', String(confirmPublic));
+  const response = await fetch(`${API_BASE_URL}/studio/${encodeURIComponent(echoId)}/documents/import`, {
+    method: 'POST', credentials: 'include', body,
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    const detail = result.detail;
+    throw new Error(typeof detail === 'string' ? detail : `Import failed (${response.status})`);
+  }
+  return response.json();
+}
+
+export type KnowledgeDocument = {
+  id: string; echo_id: string; title: string;
+  visibility: 'private' | 'public'; section_count: number; created_at: string;
+};
+export type KnowledgeSearchHit = {
+  id: string;
+  title: string;
+  visibility: 'private' | 'public';
+  document_id: string | null;
+  snippet: string;
+};
 export const studio = {
+  searchKnowledge: (id:string, q:string, visibility:'all'|'private'|'public'='all', origin:'all'|'document'|'manual'='all') =>
+    request<KnowledgeSearchHit[]>(`/studio/${encodeURIComponent(id)}/knowledge/search?q=${encodeURIComponent(q)}&visibility=${visibility}&origin=${origin}`),
+  documents: (id:string) => request<KnowledgeDocument[]>(`/studio/${id}/documents`),
+  setDocumentVisibility: (echoId:string,documentId:string,visibility:'private'|'public',allow_public:boolean) =>
+    request<KnowledgeDocument>(`/studio/${echoId}/documents/${documentId}`, {
+      method:'PATCH',body:JSON.stringify({visibility,allow_public}),
+    }),
+  removeDocument: (echoId:string,documentId:string) =>
+    request<void>(`/studio/${echoId}/documents/${documentId}`, {method:'DELETE',body:'{}'}),
   memories: (id:string) => request<any[]>(`/studio/${id}/memories`),
   addMemory: (id:string, data:{title:string;content:string;visibility:string}) => request<any>(`/studio/${id}/memories`,{method:'POST',body:JSON.stringify(data)}),
   updateMemory: (id:string,memoryId:string,data:{title?:string;content?:string;visibility?:'private'|'public'}) => request<any>(`/studio/${id}/memories/${memoryId}`,{method:'PATCH',body:JSON.stringify(data)}),

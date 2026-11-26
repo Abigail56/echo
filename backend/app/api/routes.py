@@ -16,6 +16,9 @@ from app.core.ai import reply
 from app.core.knowledge import relevant_memory_context, relevant_document_context
 from app.models.entities import User, Echo, Memory, Usage, Conversation, ChatTurn, KnowledgeDocument
 from app.api.schemas import Register, Login, UserOut, EchoCreate, EchoUpdate, EchoOut, PublicEcho, ChatRequest, ChatResponse
+from app.core.knowledge import retrieve_approved_knowledge
+from app.models.entities import User, Echo, Memory, Usage, Conversation, ChatTurn, KnowledgeDocument
+from app.api.schemas import Register, Login, UserOut, EchoCreate, EchoUpdate, EchoOut, PublicEcho, ChatRequest, ChatResponse, KnowledgeSourceOut
 
 router = APIRouter()
 
@@ -210,6 +213,8 @@ async def private_chat(echo_id: UUID, body: ChatRequest, request: Request,
     context = relevant_memory_context(approved, body.message, public=False)
     documents = db.exec(select(KnowledgeDocument).where(KnowledgeDocument.echo_id == echo_id, KnowledgeDocument.owner_id == user.id)).all()
     context += '\n' + relevant_document_context(documents, body.message, public=False)
+    retrieval = retrieve_approved_knowledge(approved, body.message, public=False)
+    context = retrieval.context
     # Use persisted owner history instead of untrusted client-authored assistant turns.
     previous = db.exec(
         select(ChatTurn).where(ChatTurn.echo_id == echo_id, ChatTurn.owner_id == user.id)
@@ -225,6 +230,10 @@ async def private_chat(echo_id: UUID, body: ChatRequest, request: Request,
         echo, ChatRequest(message=body.message, history=trusted_history),
         public=False, additional_knowledge=context,
     )
+    response.sources = [
+        KnowledgeSourceOut(id=source.id, title=source.title)
+        for source in retrieval.sources
+    ]
     if not usage: usage = Usage(user_id=user.id, period=period)
     usage.chat_count += 1
     db.add(usage)
@@ -254,3 +263,11 @@ async def public_chat(handle: str, body: ChatRequest, request: Request, db: Sess
     documents = db.exec(select(KnowledgeDocument).where(KnowledgeDocument.echo_id == echo.id, KnowledgeDocument.visibility == 'public')).all()
     context += '\n' + relevant_document_context(documents, body.message, public=True)
     return await reply(echo, body, public=True, additional_knowledge=context)
+    retrieval = retrieve_approved_knowledge(approved, body.message, public=True)
+    context = retrieval.context
+    response = await reply(echo, body, public=True, additional_knowledge=context)
+    response.sources = [
+        KnowledgeSourceOut(id=source.id, title=source.title)
+        for source in retrieval.sources
+    ]
+    return response

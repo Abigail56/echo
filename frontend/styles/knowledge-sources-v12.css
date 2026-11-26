@@ -1,0 +1,10 @@
+/* Knowledge transparency on new ECHO chat replies; no unverified citation claims. */
+.chat-v12-message { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+.chat-v12-message.user { align-items: flex-end; }
+.chat-v12-message .bubble { overflow-wrap: anywhere; max-width: 100%; }
+.chat-v12-knowledge { max-width: min(100%, 500px); margin: 6px 0 13px; padding: 9px 12px; border: 1px solid #ae95df59; border-radius: 10px; background: #211b32; }
+.chat-v12-knowledge summary { cursor: pointer; color: #dbcaff; font-size: .76rem; font-weight: 600; }
+.chat-v12-knowledge summary:focus-visible { outline: 2px solid #d6baff; outline-offset: 3px; }
+.chat-v12-knowledge ul { margin: 12px 0 0; padding-left: 20px; color: #e6dcf5; font-size: .78rem; }
+.chat-v12-knowledge li { overflow-wrap: anywhere; margin: 4px 0; }
+.chat-v12-knowledge p { margin: 11px 0 0; color: #aaa1b9; font-size: .7rem; line-height: 1.6; }

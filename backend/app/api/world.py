@@ -1,12 +1,14 @@
 from datetime import datetime, timezone
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, Query
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select, or_
 from app.core.db import session_dep
 from app.core.auth import current_user
 from app.core.limit import limit
-from app.models.entities import User, Echo, Memory, Connection, Community, Membership, Post, Conversation, Usage
+from app.core.document_import import MAX_UPLOAD_BYTES, document_title, extract_document_full, split_document_sections
+from app.core.knowledge_search import search_memories
+from app.models.entities import User, Echo, Memory, Connection, Community, Membership, Post, Conversation, Usage, KnowledgeDocument
 from app.core.ai import reply
 
 router = APIRouter()
@@ -19,6 +21,11 @@ class MemoryUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=2, max_length=120)
     content: str | None = Field(default=None, min_length=2, max_length=5000)
     visibility: str | None = Field(default=None, pattern="^(private|public)$")
+
+class DocumentVisibilityUpdate(BaseModel):
+    visibility: str = Field(pattern="^(private|public)$")
+    allow_public: bool = False
+
 
 class CommunityIn(BaseModel):
     slug: str = Field(pattern=r"^[a-z0-9-]{3,48}$")
@@ -44,6 +51,89 @@ def memories(echo_id: UUID, user: User = Depends(current_user), db: Session = De
     own_echo(db, user, echo_id)
     return [serialize(x) for x in db.exec(select(Memory).where(Memory.echo_id == echo_id).order_by(Memory.created_at.desc())).all()]
 
+@router.get('/studio/{echo_id}/knowledge/search')
+def search_knowledge(
+    echo_id: UUID,
+    q: str = Query(default='', max_length=120),
+    visibility: str = Query(default='all'),
+    origin: str = Query(default='all'),
+    user: User = Depends(current_user),
+    db: Session = Depends(session_dep),
+):
+    own_echo(db, user, echo_id)
+    if visibility not in ('all', 'private', 'public') or origin not in ('all', 'document', 'manual'):
+        raise HTTPException(422, 'Invalid knowledge search filter')
+    if not q.strip():
+        return []
+    rows = db.exec(select(Memory).where(Memory.echo_id == echo_id)).all()
+    hits = search_memories(rows, q, visibility=visibility, origin=origin)
+    return [
+        {
+            'id': str(hit.id), 'title': hit.title, 'visibility': hit.visibility,
+            'document_id': str(hit.document_id) if hit.document_id else None,
+            'snippet': hit.snippet,
+        }
+        for hit in hits
+    ]
+
+
+@router.get('/studio/{echo_id}/documents')
+def documents(echo_id: UUID, user: User = Depends(current_user), db: Session = Depends(session_dep)):
+    own_echo(db, user, echo_id)
+    groups = db.exec(
+        select(KnowledgeDocument).where(KnowledgeDocument.echo_id == echo_id)
+        .order_by(KnowledgeDocument.created_at.desc(), KnowledgeDocument.id.desc())
+    ).all()
+    return [serialize(group) for group in groups]
+
+
+@router.patch('/studio/{echo_id}/documents/{document_id}')
+def update_document_visibility(
+    echo_id: UUID,
+    document_id: UUID,
+    body: DocumentVisibilityUpdate,
+    user: User = Depends(current_user),
+    db: Session = Depends(session_dep),
+):
+    own_echo(db, user, echo_id)
+    document = db.get(KnowledgeDocument, document_id)
+    if not document or document.echo_id != echo_id:
+        raise HTTPException(404, 'Document not found')
+    if body.visibility == 'public' and not body.allow_public:
+        raise HTTPException(422, 'Public document sharing requires explicit confirmation.')
+    sections = db.exec(
+        select(Memory).where(Memory.echo_id == echo_id, Memory.document_id == document_id)
+    ).all()
+    document.visibility = body.visibility
+    for section in sections:
+        section.visibility = body.visibility
+        db.add(section)
+    db.add(document)
+    db.commit()
+    db.refresh(document)
+    return serialize(document)
+
+
+@router.delete('/studio/{echo_id}/documents/{document_id}', status_code=204)
+def delete_document(
+    echo_id: UUID,
+    document_id: UUID,
+    user: User = Depends(current_user),
+    db: Session = Depends(session_dep),
+):
+    own_echo(db, user, echo_id)
+    document = db.get(KnowledgeDocument, document_id)
+    if not document or document.echo_id != echo_id:
+        raise HTTPException(404, 'Document not found')
+    sections = db.exec(
+        select(Memory).where(Memory.echo_id == echo_id, Memory.document_id == document_id)
+    ).all()
+    for section in sections:
+        db.delete(section)
+    db.delete(document)
+    db.commit()
+
+
 @router.post('/studio/{echo_id}/memories', status_code=201)
 def add_memory(echo_id: UUID, body: MemoryIn, user: User = Depends(current_user), db: Session = Depends(session_dep)):
     own_echo(db, user, echo_id)
@@ -53,6 +143,70 @@ def add_memory(echo_id: UUID, body: MemoryIn, user: User = Depends(current_user)
     db.add(memory); db.commit(); db.refresh(memory)
     return serialize(memory)
 
+@router.post('/studio/{echo_id}/documents/import', status_code=201)
+async def import_document(
+    echo_id: UUID,
+    request: Request,
+    file: UploadFile = File(...),
+    visibility: str = Form("private", pattern="^(private|public)$"),
+    allow_public: bool = Form(False),
+    user: User = Depends(current_user),
+    db: Session = Depends(session_dep),
+):
+    own_echo(db, user, echo_id)
+    limit(request, f"document-import:{user.id}", 10, 3600)
+    if visibility == "public" and not allow_public:
+        raise HTTPException(422, "Public document sharing requires explicit confirmation.")
+    title, _ = document_title(file.filename or "")
+    try:
+        raw = await file.read(MAX_UPLOAD_BYTES + 1)
+    finally:
+        await file.close()
+    content, truncated = extract_document_full(raw, file.filename or "")
+    sections = split_document_sections(content)
+
+    # Reserve all memory slots before writing any section; commit together so
+    # a capacity error cannot leave behind a partially imported document.
+    count = len(db.exec(select(Memory.id).where(Memory.echo_id == echo_id)).all())
+    if count + len(sections) > 100:
+        raise HTTPException(
+            403,
+            f"Import requires {len(sections)} memory slots but only {100 - count} remain.",
+        )
+    document = KnowledgeDocument(
+        echo_id=echo_id, title=title, visibility=visibility,
+        section_count=len(sections),
+    )
+    db.add(document)
+    db.flush()
+    records = []
+    for number, section in enumerate(sections, start=1):
+        part_title = (f"{title} · part {number}/{len(sections)}"
+                      if len(sections) > 1 else title)
+        memory = Memory(
+            echo_id=echo_id, document_id=document.id, title=part_title,
+            content=section, visibility=visibility,
+        )
+        records.append(memory)
+        db.add(memory)
+    db.commit()
+    db.refresh(document)
+    # Returning exact newly created objects avoids timestamp and naming races.
+    for memory in records:
+        db.refresh(memory)
+    return {
+        "memory": serialize(records[0]),
+        "document": serialize(document),
+        "sections": len(sections),
+        "truncated": truncated,
+        "notice": (
+            f"Saved {len(sections)} searchable memory sections. "
+            + ("Only the first 30,000 characters were imported. " if truncated else "")
+            + "Review imported knowledge and privacy settings before using it."
+        ),
+    }
+
+
 @router.patch('/studio/{echo_id}/memories/{memory_id}')
 def update_memory(echo_id: UUID, memory_id: UUID, body: MemoryUpdate,
                   user: User = Depends(current_user), db: Session = Depends(session_dep)):
@@ -60,6 +214,10 @@ def update_memory(echo_id: UUID, memory_id: UUID, body: MemoryUpdate,
     memory = db.get(Memory, memory_id)
     if not memory or memory.echo_id != echo_id:
         raise HTTPException(404, 'Memory not found')
+    if memory.document_id and body.visibility is not None:
+        document = db.get(KnowledgeDocument, memory.document_id)
+        if document and body.visibility != document.visibility:
+            raise HTTPException(409, 'Change visibility for the whole document in Document Library.')
     for key, value in body.model_dump(exclude_unset=True).items():
         if value is not None:
             setattr(memory, key, value)
@@ -73,7 +231,21 @@ def remove_memory(echo_id: UUID, memory_id: UUID, user: User = Depends(current_u
     own_echo(db, user, echo_id)
     memory = db.get(Memory, memory_id)
     if not memory or memory.echo_id != echo_id: raise HTTPException(404, 'Memory not found')
-    db.delete(memory); db.commit()
+    document = db.get(KnowledgeDocument, memory.document_id) if memory.document_id else None
+    db.delete(memory)
+    if document:
+        remaining = db.exec(
+            select(Memory.id).where(
+                Memory.echo_id == echo_id, Memory.document_id == document.id,
+                Memory.id != memory_id,
+            )
+        ).all()
+        if remaining:
+            document.section_count = len(remaining)
+            db.add(document)
+        else:
+            db.delete(document)
+    db.commit()
 
 @router.get('/world/discover')
 def discover(q: str = '', db: Session = Depends(session_dep)):

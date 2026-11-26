@@ -1,0 +1,14 @@
+/* Document-to-memory importer, scoped to the existing Studio Memory Center. */
+.document-import-v11 { margin: 0 0 18px; padding: clamp(19px, 3vw, 28px); border: 1px solid #aa90e858; border-radius: 17px; background: linear-gradient(115deg, #201a33, #111421); }
+.document-import-intro h3 { margin: 10px 0; font-size: clamp(1.4rem, 2.5vw, 2rem); }
+.document-import-intro p { max-width: 800px; margin: 0 0 21px; color: #bcb4cd; font-size: .85rem; line-height: 1.7; }
+.document-import-v11 .form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(210px, .65fr); align-items: end; gap: 15px; }
+.document-import-v11 .form label { min-width: 0; }
+.document-import-v11 .form input[type=file],.document-import-v11 .form select { display:block; width:100%; min-height:48px; border:1px solid #c1a8e95a; border-radius:9px; background:#10111d; color:#f8f2ff; padding:10px 12px; }
+.document-import-v11 .document-import-file { grid-column: 1 / -1; margin: -6px 0 0; color:#c6b8d9; overflow-wrap:anywhere; font-size:.78rem; }
+.document-import-v11 .document-import-confirm { grid-column: 1 / -1; display:flex; flex-direction:row; align-items:start; gap:11px; padding:14px; border:1px solid #e2b97673; border-radius:10px; background:#5e44232c; font-size:.8rem; }
+.document-import-v11 .document-import-confirm input { flex-shrink:0; width:17px; height:17px; margin:2px 0; }
+.document-import-v11 .document-import-private { grid-column: 1 / -1; color:#a9dbbf; margin:0; font-size:.78rem; }
+.document-import-v11 .form > .error, .document-import-v11 .form > .voice-status { grid-column: 1 / -1; }
+.document-import-v11 .form > .button { justify-self:start; border-radius:9px; }
+@media(max-width:680px) { .document-import-v11 .form { grid-template-columns:1fr; } .document-import-v11 .form > .button { width:100%; } }
