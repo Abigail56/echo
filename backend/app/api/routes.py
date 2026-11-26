@@ -209,7 +209,7 @@ async def private_chat(echo_id: UUID, body: ChatRequest, request: Request,
     approved = db.exec(select(Memory).where(Memory.echo_id == echo_id)).all()
     context = relevant_memory_context(approved, body.message, public=False)
     documents = db.exec(select(KnowledgeDocument).where(KnowledgeDocument.echo_id == echo_id, KnowledgeDocument.owner_id == user.id)).all()
-    context += '\\n' + relevant_document_context(documents, body.message, public=False)
+    context += '\n' + relevant_document_context(documents, body.message, public=False)
     # Use persisted owner history instead of untrusted client-authored assistant turns.
     previous = db.exec(
         select(ChatTurn).where(ChatTurn.echo_id == echo_id, ChatTurn.owner_id == user.id)
@@ -252,5 +252,5 @@ async def public_chat(handle: str, body: ChatRequest, request: Request, db: Sess
     approved = db.exec(select(Memory).where(Memory.echo_id == echo.id, Memory.visibility == 'public')).all()
     context = relevant_memory_context(approved, body.message, public=True)
     documents = db.exec(select(KnowledgeDocument).where(KnowledgeDocument.echo_id == echo.id, KnowledgeDocument.visibility == 'public')).all()
-    context += '\\n' + relevant_document_context(documents, body.message, public=True)
+    context += '\n' + relevant_document_context(documents, body.message, public=True)
     return await reply(echo, body, public=True, additional_knowledge=context)
