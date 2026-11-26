@@ -49,7 +49,7 @@ class Memory(SQLModel, table=True):
     visibility: str = Field(default="private", max_length=12)
     created_at: datetime = Field(default_factory=now)
 
-class UploadedDocument(SQLModel, table=True):
+class KnowledgeDocument(SQLModel, table=True):
     """Extracted text only; uploaded source bytes are not retained."""
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     echo_id: UUID = Field(foreign_key="echo.id", index=True)

@@ -13,7 +13,7 @@ import app.api.documents as api
 import app.api.routes as routes
 from app.api.schemas import ChatRequest, ChatResponse
 from app.core.documents import MAX_UPLOAD_BYTES, extract_document
-from app.models.entities import Echo, UploadedDocument, User
+from app.models.entities import Echo, KnowledgeDocument, User
 
 
 def make_db():
@@ -100,10 +100,10 @@ def test_public_chat_never_receives_private_document_text(monkeypatch):
         db.add_all([owner, echo])
         db.commit()
         db.add_all([
-            UploadedDocument(echo_id=echo.id, owner_id=owner.id, filename="secret.txt",
+            KnowledgeDocument(echo_id=echo.id, owner_id=owner.id, filename="secret.txt",
                               visibility="private", content_type="text/plain",
                               extracted_text="SECRET-DOCUMENT-PASSPORT-ABC"),
-            UploadedDocument(echo_id=echo.id, owner_id=owner.id, filename="portfolio.md",
+            KnowledgeDocument(echo_id=echo.id, owner_id=owner.id, filename="portfolio.md",
                               visibility="public", content_type="text/markdown",
                               extracted_text="RouteBridge delivery service using FastAPI"),
         ])
