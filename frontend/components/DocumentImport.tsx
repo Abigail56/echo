@@ -39,7 +39,7 @@ export default function DocumentImport({ echoId, onImported }: { echoId: string;
     <div className="document-import-intro">
       <span className="section-kicker">DOCUMENT KNOWLEDGE</span>
       <h3 id="document-import-heading">Import from a file.</h3>
-      <p>Extract text from a PDF, TXT or Markdown file into one editable memory. Your original file is not stored. Maximum 2 MB, 10 PDF pages, and 5,000 saved characters. Image-only PDFs are not supported.</p>
+      <p>Extract up to 30,000 characters from a PDF, TXT or Markdown document into several editable, searchable memory sections (up to 8). Your original file is not stored. Maximum 2 MB and 10 PDF pages. Image-only PDFs are not supported.</p>
     </div>
     <form className="form" onSubmit={event => void submit(event)}>
       <label htmlFor={`knowledge-file-${echoId}`}>Choose a document
@@ -55,8 +55,8 @@ export default function DocumentImport({ echoId, onImported }: { echoId: string;
       </label>
       {visibility === 'public' ? <label className="document-import-confirm">
         <input type="checkbox" checked={confirmPublic} onChange={event => setConfirmPublic(event.target.checked)} />
-        <span>I reviewed this document and approve its extracted text for public ECHO responses.</span>
-      </label> : <p className="document-import-private">Default: private. You can edit or delete the imported memory after saving.</p>}
+        <span>I reviewed this document and approve all imported sections for public ECHO responses.</span>
+      </label> : <p className="document-import-private">Default: private. Every imported section can be edited or deleted in the memory library.</p>}
       {error ? <p className="error" role="alert">{error}</p> : null}
       {notice ? <p className="voice-status" role="status">{notice}</p> : null}
       <button className="button" type="submit" disabled={!file || busy || (visibility === 'public' && !confirmPublic)}>

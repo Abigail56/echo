@@ -6,7 +6,7 @@ from sqlmodel import Session, select, or_
 from app.core.db import session_dep
 from app.core.auth import current_user
 from app.core.limit import limit
-from app.core.document_import import MAX_UPLOAD_BYTES, document_title, extract_document
+from app.core.document_import import MAX_UPLOAD_BYTES, document_title, extract_document_full, split_document_sections
 from app.models.entities import User, Echo, Memory, Connection, Community, Membership, Post, Conversation, Usage
 from app.core.ai import reply
 
@@ -68,24 +68,45 @@ async def import_document(
     limit(request, f"document-import:{user.id}", 10, 3600)
     if visibility == "public" and not allow_public:
         raise HTTPException(422, "Public document sharing requires explicit confirmation.")
-    if len(db.exec(select(Memory).where(Memory.echo_id == echo_id)).all()) >= 100:
-        raise HTTPException(403, "Memory limit reached.")
     title, _ = document_title(file.filename or "")
     try:
-        # Read a bounded amount. Uploaded original content is not stored.
         raw = await file.read(MAX_UPLOAD_BYTES + 1)
     finally:
         await file.close()
-    content, truncated = extract_document(raw, file.filename or "")
-    memory = Memory(echo_id=echo_id, title=title, content=content, visibility=visibility)
-    db.add(memory)
+    content, truncated = extract_document_full(raw, file.filename or "")
+    sections = split_document_sections(content)
+
+    # Reserve all memory slots before writing any section; commit together so
+    # a capacity error cannot leave behind a partially imported document.
+    count = len(db.exec(select(Memory.id).where(Memory.echo_id == echo_id)).all())
+    if count + len(sections) > 100:
+        raise HTTPException(
+            403,
+            f"Import requires {len(sections)} memory slots but only {100 - count} remain.",
+        )
+    records = []
+    for number, section in enumerate(sections, start=1):
+        part_title = (f"{title} · part {number}/{len(sections)}"
+                      if len(sections) > 1 else title)
+        memory = Memory(
+            echo_id=echo_id, title=part_title,
+            content=section, visibility=visibility,
+        )
+        records.append(memory)
+        db.add(memory)
     db.commit()
-    db.refresh(memory)
+    # Returning exact newly created objects avoids timestamp and naming races.
+    for memory in records:
+        db.refresh(memory)
     return {
-        "memory": serialize(memory),
+        "memory": serialize(records[0]),
+        "sections": len(sections),
         "truncated": truncated,
-        "notice": ("Only the first 5,000 characters of extracted text were saved. Review and edit the memory."
-                   if truncated else "Extracted text saved as an editable memory."),
+        "notice": (
+            f"Saved {len(sections)} searchable memory sections. "
+            + ("Only the first 30,000 characters were imported. " if truncated else "")
+            + "Review imported knowledge and privacy settings before using it."
+        ),
     }
 
 
