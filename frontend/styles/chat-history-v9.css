@@ -1,0 +1,12 @@
+/* Owner-only chat history v9 */
+.chat-v9 { border: 1px solid #ad98e43d; border-radius: 15px; background: linear-gradient(155deg, #201a31, #11121d); }
+.chat-v9-header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:15px; }
+.chat-v9-header .chat-heading { margin:0; }
+.chat-v9-description { margin:9px 0 0; color:#bfb5cc; font-size:.76rem; line-height:1.5; }
+.chat-v9-header .button { flex-shrink:0; border-radius:8px; }
+.chat-v9 .messages { border-radius:11px; background:#10101b; }
+.chat-v9 .chat-form .button, .chat-v9 .chat-form input { border-radius:9px; }
+@media(max-width:650px) {
+  .chat-v9-header { flex-direction:column; align-items:flex-start; }
+  .chat-v9-header .button { align-self:flex-start; }
+}
