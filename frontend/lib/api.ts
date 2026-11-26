@@ -99,7 +99,7 @@ export const world = {
   dialogue: (id:string) => request<any>(`/world/agent-introductions/${id}/dialogue`, {method:'POST',body:'{}'}),
   run: (id:string) => request<any>(`/world/agent-introductions/${id}/run`, {method:'POST',body:'{}'}),
 };
-export type KnowledgeDocument = {
+export type UploadedKnowledgeDocument = {
   id: string;
   filename: string;
   visibility: 'private' | 'public';
@@ -110,12 +110,12 @@ export type KnowledgeDocument = {
 };
 
 export const documents = {
-  list: (echoId: string) => request<KnowledgeDocument[]>(`/studio/${encodeURIComponent(echoId)}/documents`),
-  upload: async (echoId: string, file: File, visibility: 'private' | 'public'): Promise<KnowledgeDocument> => {
+  list: (echoId: string) => request<UploadedKnowledgeDocument[]>(`/studio/${encodeURIComponent(echoId)}/uploaded-documents`),
+  upload: async (echoId: string, file: File, visibility: 'private' | 'public'): Promise<UploadedKnowledgeDocument> => {
     const form = new FormData();
     form.append('file', file);
     form.append('visibility', visibility);
-    const response = await fetch(`${API_BASE_URL}/studio/${encodeURIComponent(echoId)}/documents`, {
+    const response = await fetch(`${API_BASE_URL}/studio/${encodeURIComponent(echoId)}/uploaded-documents`, {
       method: 'POST', credentials: 'include', body: form,
     });
     if (!response.ok) {
@@ -125,11 +125,11 @@ export const documents = {
     return response.json();
   },
   setVisibility: (echoId: string, documentId: string, visibility: 'private' | 'public') =>
-    request<KnowledgeDocument>(`/studio/${encodeURIComponent(echoId)}/documents/${encodeURIComponent(documentId)}`, {
+    request<UploadedKnowledgeDocument>(`/studio/${encodeURIComponent(echoId)}/uploaded-documents/${encodeURIComponent(documentId)}`, {
       method: 'PATCH', body: JSON.stringify({ visibility }),
     }),
   remove: (echoId: string, documentId: string) =>
-    request<void>(`/studio/${encodeURIComponent(echoId)}/documents/${encodeURIComponent(documentId)}`, {
+    request<void>(`/studio/${encodeURIComponent(echoId)}/uploaded-documents/${encodeURIComponent(documentId)}`, {
       method: 'DELETE', body: '{}',
     }),
 };
