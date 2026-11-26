@@ -99,6 +99,24 @@ export const world = {
   dialogue: (id:string) => request<any>(`/world/agent-introductions/${id}/dialogue`, {method:'POST',body:'{}'}),
   run: (id:string) => request<any>(`/world/agent-introductions/${id}/run`, {method:'POST',body:'{}'}),
 };
+export async function importKnowledgeDocument(
+  echoId: string, file: File, visibility: 'private' | 'public', confirmPublic: boolean,
+): Promise<{memory:{id:string;title:string;content:string;visibility:string};truncated:boolean;notice:string}> {
+  const body = new FormData();
+  body.append('file', file);
+  body.append('visibility', visibility);
+  body.append('allow_public', String(confirmPublic));
+  const response = await fetch(`${API_BASE_URL}/studio/${encodeURIComponent(echoId)}/documents/import`, {
+    method: 'POST', credentials: 'include', body,
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    const detail = result.detail;
+    throw new Error(typeof detail === 'string' ? detail : `Import failed (${response.status})`);
+  }
+  return response.json();
+}
+
 export const studio = {
   memories: (id:string) => request<any[]>(`/studio/${id}/memories`),
   addMemory: (id:string, data:{title:string;content:string;visibility:string}) => request<any>(`/studio/${id}/memories`,{method:'POST',body:JSON.stringify(data)}),
