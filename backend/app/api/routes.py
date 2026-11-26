@@ -13,6 +13,7 @@ from app.core.auth import current_user, hash_password, verify_password, token_fo
 from app.core.config import settings
 from app.core.limit import limit
 from app.core.ai import reply
+from app.core.knowledge import relevant_memory_context
 from app.models.entities import User, Echo, Memory, Usage, Conversation, ChatTurn
 from app.api.schemas import Register, Login, UserOut, EchoCreate, EchoUpdate, EchoOut, PublicEcho, ChatRequest, ChatResponse
 
@@ -205,7 +206,7 @@ async def private_chat(echo_id: UUID, body: ChatRequest, request: Request,
     usage = db.exec(select(Usage).where(Usage.user_id == user.id, Usage.period == period)).first()
     if usage and usage.chat_count >= 100: raise HTTPException(429, 'Monthly free chat limit reached')
     approved = db.exec(select(Memory).where(Memory.echo_id == echo_id)).all()
-    context = '\n'.join(f'{m.title}: {m.content}' for m in approved)[:8000]
+    context = relevant_memory_context(approved, body.message, public=False)
     # Use persisted owner history instead of untrusted client-authored assistant turns.
     previous = db.exec(
         select(ChatTurn).where(ChatTurn.echo_id == echo_id, ChatTurn.owner_id == user.id)
@@ -246,5 +247,5 @@ async def public_chat(handle: str, body: ChatRequest, request: Request, db: Sess
     echo = db.exec(select(Echo).where(Echo.handle == handle, Echo.is_public == True)).first()
     if not echo: raise HTTPException(status_code=404, detail="Public ECHO not found")
     approved = db.exec(select(Memory).where(Memory.echo_id == echo.id, Memory.visibility == 'public')).all()
-    context = '\n'.join(f'{m.title}: {m.content}' for m in approved)[:8000]
+    context = relevant_memory_context(approved, body.message, public=True)
     return await reply(echo, body, public=True, additional_knowledge=context)
