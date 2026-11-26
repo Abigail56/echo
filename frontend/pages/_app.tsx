@@ -11,6 +11,7 @@ import '../styles/immersive-v6.css';
 import '../styles/inbox-v7.css';
 import '../styles/memory-v8.css';
 import '../styles/chat-history-v9.css';
+import '../styles/documents-v11.css';
 export default function App({ Component, pageProps }: AppProps) {
   return <>
     <Head>
