@@ -5,6 +5,37 @@ export function apiWebSocketUrl(path: string): string {
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   return url.toString();
 }
+
+function apiErrorMessage(payload: unknown, fallback: string): string {
+  if (typeof payload === 'string') return payload.trim() || fallback;
+  if (Array.isArray(payload)) {
+    const messages = payload
+      .map(item => apiErrorMessage(item, ''))
+      .filter(Boolean);
+    return messages.join('; ') || fallback;
+  }
+  if (payload && typeof payload === 'object') {
+    const record = payload as Record<string, unknown>;
+    if (typeof record.msg === 'string' && record.msg.trim()) {
+      const location = Array.isArray(record.loc)
+        ? record.loc.filter((part): part is string | number => typeof part === 'string' || typeof part === 'number').join('.')
+        : '';
+      return location ? `${location}: ${record.msg}` : record.msg;
+    }
+    for (const key of ['detail', 'message', 'msg', 'error']) {
+      if (record[key] === undefined || record[key] === payload) continue;
+      const message = apiErrorMessage(record[key], '');
+      if (message) return message;
+    }
+  }
+  return fallback;
+}
+
+async function responseError(response: Response, fallback: string): Promise<Error> {
+  const payload = await response.json().catch(() => undefined);
+  return new Error(`${apiErrorMessage(payload, fallback)} (HTTP ${response.status})`);
+}
+
 export async function uploadAvatarPhoto(photo: File, presentation: 'female' | 'male'): Promise<{ status: string; progress: number; model_available: boolean; source: string }> {
   const bytes = new Uint8Array(await photo.arrayBuffer());
   let binary = '';
@@ -23,8 +54,7 @@ export async function uploadAvatarPhoto(photo: File, presentation: 'female' | 'm
     }),
   });
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.detail || `Avatar generation failed (${response.status})`);
+    throw await responseError(response, 'Avatar generation failed');
   }
   return response.json();
 }
@@ -32,8 +62,7 @@ export async function uploadAvatarPhoto(photo: File, presentation: 'female' | 'm
 export async function fetchAvatarModel(): Promise<Blob> {
   const response = await fetch(`${API_BASE_URL}/avatar/model`, { credentials: 'include' });
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.detail || `Avatar download failed (${response.status})`);
+    throw await responseError(response, 'Avatar download failed');
   }
   return response.blob();
 }
@@ -47,8 +76,7 @@ export async function importAvatarModel(model: File): Promise<{ status: string; 
     body: form,
   });
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.detail || `Avatar import failed (${response.status})`);
+    throw await responseError(response, 'Avatar import failed');
   }
   return response.json();
 }
@@ -59,8 +87,7 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     headers: { 'Content-Type': 'application/json', ...init.headers },
   });
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.detail || `Request failed (${response.status})`);
+    throw await responseError(response, 'Request failed');
   }
   if (response.status === 204) return undefined as T;
   return response.json();
@@ -119,8 +146,7 @@ export const documents = {
       method: 'POST', credentials: 'include', body: form,
     });
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.detail || `Upload failed (${response.status})`);
+      throw await responseError(response, 'Upload failed');
     }
     return response.json();
   },
@@ -145,9 +171,7 @@ export async function importKnowledgeDocument(
     method: 'POST', credentials: 'include', body,
   });
   if (!response.ok) {
-    const result = await response.json().catch(() => ({}));
-    const detail = result.detail;
-    throw new Error(typeof detail === 'string' ? detail : `Import failed (${response.status})`);
+    throw await responseError(response, 'Import failed');
   }
   return response.json();
 }
@@ -284,8 +308,7 @@ async function uploadForm<T>(path: string, form: FormData): Promise<T> {
     body: form,
   });
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.detail || `Upload failed (${response.status})`);
+    throw await responseError(response, 'Upload failed');
   }
   return response.json();
 }
