@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import type { Echo, Message } from '../types';
-import { API_BASE_URL, echoes } from '../lib/api';
+import { API_BASE_URL, apiResponseError, echoes } from '../lib/api';
 import { openMicrophone } from '../lib/media';
 import Human3D from './Human3D';
 import AvatarCreator from './AvatarCreator';
@@ -242,8 +242,7 @@ export default function AvatarVoiceStudio() {
         signal: controller.signal,
       });
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || `Speech request failed (${response.status})`);
+        throw await apiResponseError(response, 'Speech request failed');
       }
       const blob = await response.blob();
       if (controller.signal.aborted) return;

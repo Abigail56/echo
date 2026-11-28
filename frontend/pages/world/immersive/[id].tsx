@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '../../../components/Layout';
-import { API_BASE_URL, apiWebSocketUrl, echoes } from '../../../lib/api';
+import { API_BASE_URL, apiResponseError, apiWebSocketUrl, echoes } from '../../../lib/api';
 import { openMicrophone } from '../../../lib/media';
 import type { Echo, Message } from '../../../types';
 import type { Person } from '../../../components/WorldScene';
@@ -403,8 +403,7 @@ export default function Immersive() {
         signal: controller.signal,
       });
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || `Speech request failed (${response.status})`);
+        throw await apiResponseError(response, 'Speech request failed');
       }
       const blob = await response.blob();
       if (controller.signal.aborted) return;

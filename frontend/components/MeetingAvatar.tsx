@@ -16,7 +16,7 @@ import type {
   TavusFace,
   UnifiedAvatar,
 } from '../lib/api';
-import { openMicrophone } from '../lib/media';
+import { openMicrophone, playAvatarAudio } from '../lib/media';
 import type { Echo } from '../types';
 
 type ProviderStatus = {
@@ -212,10 +212,13 @@ export default function MeetingAvatar() {
       const tavusProvider = available.providers.tavus;
       setSandbox(Boolean(liveProvider?.sandbox));
       if (current.liveavatar.authenticated) {
-        const [usage, preference] = await Promise.all([
-          liveAvatars.usage().catch(() => null),
-          liveAvatars.preference(),
-        ]);
+        const preference = await liveAvatars.preference();
+        let usage: { credits_left?: string | number | null } | null = null;
+        try {
+          usage = await liveAvatars.usage();
+        } catch (cause) {
+          setError(`Could not load LiveAvatar usage: ${messageFrom(cause)}`);
+        }
         const liveFaces = available.avatars.filter(item => item.provider === 'liveavatar' && item.selectable);
         setAvatarId(previous => (
           previous && liveFaces.some(item => item.id === previous)
@@ -538,10 +541,14 @@ export default function MeetingAvatar() {
     session.on(SessionEvent.SESSION_CONNECTION_QUALITY_CHANGED, nextQuality => setQuality(String(nextQuality)));
     session.on(SessionEvent.SESSION_DISCONNECTED, () => {
       if (!endingRef.current) {
+        fullSessionRef.current = null;
+        sessionIdRef.current = '';
+        if (videoRef.current) videoRef.current.srcObject = null;
+        if (audioRef.current) audioRef.current.srcObject = null;
         setActive(false);
         setStreamReady(false);
         setConnectionState('Disconnected');
-        setStatus('LiveAvatar disconnected. Stop the session and reconnect.');
+        setStatus('LiveAvatar disconnected. The session was closed; reconnect when ready.');
         void liveAvatars.markClosed(result.session_id).catch(cause => setError(messageFrom(cause)));
       }
     });
@@ -623,8 +630,7 @@ export default function MeetingAvatar() {
         setStatus(`LiveAvatar video received from ${participant.identity}.`);
       } else if (track.kind === Track.Kind.Audio && audioRef.current) {
         track.attach(audioRef.current);
-        audioRef.current.muted = true;
-        void audioRef.current.play().catch(() => setError('Avatar audio is ready, but playback needs a user click.'));
+        void playAvatarAudio(audioRef.current, () => setError('Avatar audio is ready, but playback needs a user click.'));
       }
     });
     room.on(RoomEvent.Reconnecting, () => {
@@ -637,8 +643,13 @@ export default function MeetingAvatar() {
     });
     room.on(RoomEvent.Disconnected, () => {
       if (!endingRef.current) {
-        setConnectionState('Disconnected');
-        setStatus('LiveKit disconnected. The avatar video connection was lost.');
+        void stopSession().then(() => {
+          setConnectionState('Disconnected');
+          setStatus('LiveKit disconnected. Session resources were stopped; reconnect when ready.');
+        }).catch(cause => {
+          setError(`Could not clean up the disconnected LiveAvatar session: ${messageFrom(cause)}`);
+          setStatus('LiveKit disconnected. Session cleanup needs attention.');
+        });
       }
     });
     await room.connect(result.livekit_url, result.livekit_client_token);

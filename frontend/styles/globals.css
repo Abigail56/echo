@@ -362,6 +362,9 @@ p { line-height: 1.7; }
 .avatar-option-panel .avatar-consent { display: flex; flex-direction: row; align-items: flex-start; gap: 11px; font-size: .75rem; line-height: 1.5; }
 .avatar-webcam { position: relative; max-width: 780px; margin: 18px 0; }
 .avatar-webcam-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); background: #0a0810; }
+.avatar-photo-preview { width: fit-content; max-width: min(100%, 360px); margin: 0; }
+.avatar-photo-preview img { display: block; max-width: 100%; max-height: 360px; object-fit: contain; border: 1px solid var(--border); }
+.avatar-photo-preview figcaption { margin-top: 6px; font-size: .7rem; }
 .provider-avatar-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
 .provider-avatar-card { display: grid; gap: 8px; padding: 14px; background: #100c17; border: 1px solid var(--border); }
 .provider-avatar-card.selected { border-color: var(--magenta); }

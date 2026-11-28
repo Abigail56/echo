@@ -5,6 +5,14 @@ export type MicrophoneCapture = {
   usedFallback: boolean;
 };
 
+export function playAvatarAudio(
+  audio: Pick<HTMLAudioElement, 'muted' | 'play'>,
+  onPlaybackBlocked: () => void,
+): Promise<void> {
+  audio.muted = false;
+  return audio.play().catch(onPlaybackBlocked);
+}
+
 const audioConstraints = {
   echoCancellation: true,
   noiseSuppression: true,

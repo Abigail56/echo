@@ -34,6 +34,8 @@ export default function AvatarCreator({ onModelUrl }: { onModelUrl: (url: string
   const [selectedAvatarId, setSelectedAvatarId] = useState('');
   const [personalAvatar, setPersonalAvatar] = useState<LiveAvatar | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
+  const [photoSource, setPhotoSource] = useState<'device' | 'webcam' | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState('');
   const [cameraActive, setCameraActive] = useState(false);
   const [resolution, setResolution] = useState<720 | 1080>(720);
   const [consent, setConsent] = useState(false);
@@ -107,6 +109,24 @@ export default function AvatarCreator({ onModelUrl }: { onModelUrl: (url: string
       onModelUrl(undefined);
     };
   }, [onModelUrl, refreshCatalog, refreshGeneration]);
+
+  useEffect(() => {
+    if (option === 'video-create') return;
+    cameraStreamRef.current?.getTracks().forEach(track => track.stop());
+    cameraStreamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setCameraActive(false);
+  }, [option]);
+
+  useEffect(() => {
+    if (!photo) {
+      setPhotoPreviewUrl('');
+      return;
+    }
+    const previewUrl = URL.createObjectURL(photo);
+    setPhotoPreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [photo]);
 
   useEffect(() => {
     if (!tavusFaceTask || ['completed', 'active', 'ready', 'failed', 'error'].includes(tavusFaceTask.status.toLowerCase())) return;
@@ -213,6 +233,7 @@ export default function AvatarCreator({ onModelUrl }: { onModelUrl: (url: string
       return;
     }
     setPhoto(new File([blob], 'webcam-avatar.jpg', { type: 'image/jpeg' }));
+    setPhotoSource('webcam');
     setNotice('Webcam frame captured. Review it and submit with consent to create the avatar.');
     stopCamera();
   }
@@ -227,6 +248,7 @@ export default function AvatarCreator({ onModelUrl }: { onModelUrl: (url: string
       const avatar = await liveAvatars.createImage(photo, resolution, consent);
       setPersonalAvatar(avatar);
       setPhoto(null);
+      setPhotoSource(null);
       setConsent(false);
       setNotice(`LiveAvatar accepted the image. Training status: ${avatar.status}.`);
     } catch (cause) {
@@ -366,23 +388,36 @@ export default function AvatarCreator({ onModelUrl }: { onModelUrl: (url: string
 
     {option === 'video-create' ? <div className="avatar-option-panel">
       <h3>Create a photorealistic LiveAvatar</h3>
-      <p className="muted">{providerMessage}</p>
+      <p className="muted">{videoProviderReady
+        ? 'Camera access is separate from LiveAvatar. Start the webcam, allow browser permission, then capture a frame—or choose a JPEG/PNG photo.'
+        : providerMessage}</p>
       <p className="muted smallprint">LiveAvatar currently documents an alpha image-avatar creation API. It accepts a single JPEG/PNG (16:9 or 9:16, short side at least 1080 px); video-recording upload and provider identity verification are not available through this endpoint. You must have the likeness rights and provide consent.</p>
       <div className="avatar-webcam">
         <video ref={videoRef} className="meeting-video" muted playsInline />
-        {!cameraActive ? <div className="avatar-webcam-empty">Webcam preview is stopped.</div> : null}
+        {!cameraActive ? <div className="avatar-webcam-empty">Webcam preview is stopped. Start webcam capture to turn it on.</div> : null}
       </div>
       <div className="meeting-actions">
         {!cameraActive
-          ? <button className="button ghost" type="button" onClick={() => void startCamera()}>Start webcam capture</button>
+          ? <button className="button ghost" type="button" onClick={() => void startCamera()}>Allow camera &amp; start preview</button>
           : <button className="button ghost" type="button" onClick={() => void captureFrame()}>Capture frame</button>}
         {cameraActive ? <button className="button ghost" type="button" onClick={stopCamera}>Stop webcam</button> : null}
       </div>
       <form onSubmit={event => void createVideoAvatar(event)}>
         <label>Photo (JPEG or PNG)
-          <input type="file" accept="image/jpeg,image/png" onChange={event => setPhoto(event.target.files?.[0] || null)} disabled={busy || !videoProviderReady} />
+          <input type="file" accept="image/jpeg,image/png" onChange={event => {
+            const file = event.target.files?.[0] || null;
+            setPhoto(file);
+            setPhotoSource(file ? 'device' : null);
+          }} disabled={busy || !videoProviderReady} />
         </label>
-        {photo ? <p className="muted" role="status">Selected: {photo.name} ({Math.round(photo.size / 1024)} KB)</p> : null}
+        {photo ? <p className="muted" role="status">
+          {photoSource === 'webcam' ? 'Webcam capture ready' : 'Selected photo'}: {photo.name} ({Math.round(photo.size / 1024)} KB).
+          {photoSource === 'webcam' ? ' The file picker can still say “No file chosen”; choose a file above to replace this captured photo.' : ''}
+        </p> : null}
+        {photo && photoPreviewUrl ? <figure className="avatar-photo-preview">
+          <img src={photoPreviewUrl} alt="Local preview of the selected avatar training photo" />
+          <figcaption className="muted">Local preview. This image is sent to LiveAvatar only when you submit.</figcaption>
+        </figure> : null}
         <label>Training resolution
           <select value={resolution} onChange={event => setResolution(Number(event.target.value) as 720 | 1080)}>
             <option value={720}>720p</option><option value={1080}>1080p (Business/Enterprise plan required)</option>
