@@ -31,7 +31,7 @@ function apiErrorMessage(payload: unknown, fallback: string): string {
   return fallback;
 }
 
-async function responseError(response: Response, fallback: string): Promise<Error> {
+export async function apiResponseError(response: Response, fallback: string): Promise<Error> {
   const payload = await response.json().catch(() => undefined);
   return new Error(`${apiErrorMessage(payload, fallback)} (HTTP ${response.status})`);
 }
@@ -54,7 +54,7 @@ export async function uploadAvatarPhoto(photo: File, presentation: 'female' | 'm
     }),
   });
   if (!response.ok) {
-    throw await responseError(response, 'Avatar generation failed');
+    throw await apiResponseError(response, 'Avatar generation failed');
   }
   return response.json();
 }
@@ -62,7 +62,7 @@ export async function uploadAvatarPhoto(photo: File, presentation: 'female' | 'm
 export async function fetchAvatarModel(): Promise<Blob> {
   const response = await fetch(`${API_BASE_URL}/avatar/model`, { credentials: 'include' });
   if (!response.ok) {
-    throw await responseError(response, 'Avatar download failed');
+    throw await apiResponseError(response, 'Avatar download failed');
   }
   return response.blob();
 }
@@ -76,7 +76,7 @@ export async function importAvatarModel(model: File): Promise<{ status: string; 
     body: form,
   });
   if (!response.ok) {
-    throw await responseError(response, 'Avatar import failed');
+    throw await apiResponseError(response, 'Avatar import failed');
   }
   return response.json();
 }
@@ -87,7 +87,7 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     headers: { 'Content-Type': 'application/json', ...init.headers },
   });
   if (!response.ok) {
-    throw await responseError(response, 'Request failed');
+    throw await apiResponseError(response, 'Request failed');
   }
   if (response.status === 204) return undefined as T;
   return response.json();
@@ -146,7 +146,7 @@ export const documents = {
       method: 'POST', credentials: 'include', body: form,
     });
     if (!response.ok) {
-      throw await responseError(response, 'Upload failed');
+      throw await apiResponseError(response, 'Upload failed');
     }
     return response.json();
   },
@@ -171,7 +171,7 @@ export async function importKnowledgeDocument(
     method: 'POST', credentials: 'include', body,
   });
   if (!response.ok) {
-    throw await responseError(response, 'Import failed');
+    throw await apiResponseError(response, 'Import failed');
   }
   return response.json();
 }
@@ -308,7 +308,7 @@ async function uploadForm<T>(path: string, form: FormData): Promise<T> {
     body: form,
   });
   if (!response.ok) {
-    throw await responseError(response, 'Upload failed');
+    throw await apiResponseError(response, 'Upload failed');
   }
   return response.json();
 }
